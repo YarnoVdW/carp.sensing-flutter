@@ -158,7 +158,7 @@ class BeaconRangingPeriodicSamplingConfiguration extends SamplingConfiguration {
   BeaconRangingPeriodicSamplingConfiguration({
     this.beaconRegions = const [],
     this.beaconDistance = 2,
-    this.includedBeaconProximities = const [Proximity.immediate, Proximity.near],
+    this.includedBeaconProximities = const [],
   }) : super();
 
   @override
