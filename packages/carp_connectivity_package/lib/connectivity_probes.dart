@@ -126,6 +126,8 @@ class BeaconProbe extends StreamProbe {
 
   int get beaconDistance => samplingConfiguration?.beaconDistance ?? 2;
 
+  List<Proximity> get includedBeaconProximities => samplingConfiguration?.includedBeaconProximities ?? [];
+
   @override
   bool onInitialize() {
     super.onInitialize();
@@ -159,15 +161,16 @@ class BeaconProbe extends StreamProbe {
         await for (final rangingResult in flutterBeacon.ranging(beaconRegions)) {
           final closeBeacons = rangingResult.beacons.where((b) => b.accuracy <= beaconDistance).toList();
 
-          final immediateBeacons =
-              closeBeacons.where((b) => b.proximity != Proximity.far && b.proximity != Proximity.unknown).toList();
+          if (includedBeaconProximities.isNotEmpty) {
+            closeBeacons.retainWhere((b) => includedBeaconProximities.contains(b.proximity));
+          }
 
-          if (immediateBeacons.isEmpty) {
+          if (closeBeacons.isEmpty) {
             debug('$runtimeType - No close beacons found, stopping ranging.');
             continue;
           }
 
-          for (var beacon in immediateBeacons) {
+          for (var beacon in closeBeacons) {
             debug('$runtimeType - Found close beacon: $beacon');
             if (beacon.proximity == Proximity.immediate) {
               debug('$runtimeType - Beacon is immediate: $beacon');
@@ -179,7 +182,7 @@ class BeaconProbe extends StreamProbe {
           yield Measurement.fromData(
             BeaconData.fromRegionAndBeacons(
               region: rangingResult.region.identifier,
-              beacons: immediateBeacons,
+              beacons: closeBeacons,
             ),
           );
         }
