@@ -156,41 +156,36 @@ class BeaconProbe extends StreamProbe {
       if (monitoringResult.monitoringState == MonitoringState.inside) {
         debug('$runtimeType - Entered region: ${monitoringResult.region.identifier}');
 
-        yield* flutterBeacon.ranging(beaconRegions).map(
-          (rangingResult) {
-            final closeBeacons = rangingResult.beacons.where((beacon) => beacon.accuracy <= beaconDistance).toList();
-            final immediateBeacons = closeBeacons.where((beacon) => beacon.proximity != Proximity.far).toList();
+        await for (final rangingResult in flutterBeacon.ranging(beaconRegions)) {
+          final closeBeacons = rangingResult.beacons.where((b) => b.accuracy <= beaconDistance).toList();
 
-            for (var closeBeacon in closeBeacons) {
-              debug('$runtimeType - Found close beacon: $closeBeacon');
-              if (closeBeacon.proximity == Proximity.immediate) {
-                debug('$runtimeType - Beacon is immediate: $closeBeacon');
-              } else if (closeBeacon.proximity == Proximity.near) {
-                debug('$runtimeType - Beacon is near: $closeBeacon');
-              } else if (closeBeacon.proximity == Proximity.far) {
-                debug('$runtimeType - Beacon is far: $closeBeacon');
-              } else {
-                debug('$runtimeType - Beacon proximity is unknown: $closeBeacon');
-              }
+          final immediateBeacons =
+              closeBeacons.where((b) => b.proximity != Proximity.far && b.proximity != Proximity.unknown).toList();
+
+          if (immediateBeacons.isEmpty) {
+            debug('$runtimeType - No close beacons found, stopping ranging.');
+            break;
+          }
+
+          for (var beacon in immediateBeacons) {
+            debug('$runtimeType - Found close beacon: $beacon');
+            if (beacon.proximity == Proximity.immediate) {
+              debug('$runtimeType - Beacon is immediate: $beacon');
+            } else if (beacon.proximity == Proximity.near) {
+              debug('$runtimeType - Beacon is near: $beacon');
             }
+          }
 
-            if (closeBeacons.isEmpty) {
-              debug('$runtimeType - No close beacons found in region: ${rangingResult.region.identifier}');
-              return Measurement.fromData(BeaconData.fromRegionAndBeacons(
-                region: rangingResult.region.identifier,
-                beacons: [],
-              ));
-            }
-
-            return Measurement.fromData(BeaconData.fromRegionAndBeacons(
+          yield Measurement.fromData(
+            BeaconData.fromRegionAndBeacons(
               region: rangingResult.region.identifier,
               beacons: immediateBeacons,
-            ));
-          },
-        );
+            ),
+          );
+        }
       } else if (monitoringResult.monitoringState == MonitoringState.outside) {
         debug('$runtimeType - Exited region: ${monitoringResult.region.identifier}');
-      } else if (monitoringResult.monitoringState == MonitoringState.unknown) {
+      } else {
         debug('$runtimeType - Unknown state for region: ${monitoringResult.region.identifier}');
       }
     }
