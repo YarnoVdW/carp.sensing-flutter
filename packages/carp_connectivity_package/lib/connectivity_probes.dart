@@ -164,7 +164,7 @@ class BeaconProbe extends StreamProbe {
 
           if (immediateBeacons.isEmpty) {
             debug('$runtimeType - No close beacons found, stopping ranging.');
-            break;
+            continue;
           }
 
           for (var beacon in immediateBeacons) {
