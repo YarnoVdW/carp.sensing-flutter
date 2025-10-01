@@ -159,7 +159,7 @@ class BeaconProbe extends StreamProbe {
         yield* flutterBeacon.ranging(beaconRegions).map(
           (rangingResult) {
             final closeBeacons = rangingResult.beacons.where((beacon) => beacon.accuracy <= beaconDistance).toList();
-            final immediateBeacons = closeBeacons.where((beacon) => beacon.proximity == Proximity.immediate).toList();
+            final immediateBeacons = closeBeacons.where((beacon) => beacon.proximity != Proximity.far).toList();
 
             for (var closeBeacon in closeBeacons) {
               debug('$runtimeType - Found close beacon: $closeBeacon');
