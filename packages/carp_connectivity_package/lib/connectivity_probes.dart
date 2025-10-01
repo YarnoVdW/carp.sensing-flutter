@@ -158,11 +158,21 @@ class BeaconProbe extends StreamProbe {
 
         yield* flutterBeacon.ranging(beaconRegions).map(
           (rangingResult) {
+            
             final closeBeacons = rangingResult.beacons.where((beacon) => beacon.accuracy <= beaconDistance).toList();
+            final immediateBeacons = closeBeacons.where((beacon) => beacon.proximity == Proximity.immediate).toList();
+
+            if (closeBeacons.isEmpty) {
+              debug('$runtimeType - No close beacons found in region: ${rangingResult.region.identifier}');
+              return Measurement.fromData(BeaconData.fromRegionAndBeacons(
+                region: rangingResult.region.identifier,
+                beacons: [],
+              ));
+            }
 
             return Measurement.fromData(BeaconData.fromRegionAndBeacons(
               region: rangingResult.region.identifier,
-              beacons: closeBeacons,
+              beacons: immediateBeacons,
             ));
           },
         );
