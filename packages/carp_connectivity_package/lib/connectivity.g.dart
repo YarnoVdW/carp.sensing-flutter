@@ -167,6 +167,11 @@ BeaconRangingPeriodicSamplingConfiguration
                   .toList() ??
               const [],
           beaconDistance: (json['beaconDistance'] as num?)?.toInt() ?? 2,
+          includedBeaconProximities:
+              (json['includedBeaconProximities'] as List<dynamic>?)
+                      ?.map((e) => $enumDecode(_$ProximityEnumMap, e))
+                      .toList() ??
+                  const [],
         )..$type = json['__type'] as String?;
 
 Map<String, dynamic> _$BeaconRangingPeriodicSamplingConfigurationToJson(
@@ -175,6 +180,45 @@ Map<String, dynamic> _$BeaconRangingPeriodicSamplingConfigurationToJson(
       if (instance.$type case final value?) '__type': value,
       'beaconRegions': instance.beaconRegions.map((e) => e.toJson()).toList(),
       'beaconDistance': instance.beaconDistance,
+      'includedBeaconProximities': instance.includedBeaconProximities
+          .map((e) => _$ProximityEnumMap[e]!)
+          .toList(),
+    };
+
+BeaconPeriodicSamplingConfiguration
+    _$BeaconPeriodicSamplingConfigurationFromJson(Map<String, dynamic> json) =>
+        BeaconPeriodicSamplingConfiguration(
+          interval: Duration(microseconds: (json['interval'] as num).toInt()),
+          duration: Duration(microseconds: (json['duration'] as num).toInt()),
+          beaconRegions: (json['beaconRegions'] as List<dynamic>?)
+                  ?.map((e) => BeaconRegion.fromJson(e as Map<String, dynamic>))
+                  .toList() ??
+              const [],
+          beaconDistance: (json['beaconDistance'] as num?)?.toInt() ?? 2,
+          includedBeaconProximities:
+              (json['includedBeaconProximities'] as List<dynamic>?)
+                      ?.map((e) => $enumDecode(_$ProximityEnumMap, e))
+                      .toList() ??
+                  const [],
+        )
+          ..$type = json['__type'] as String?
+          ..lastTime = json['lastTime'] == null
+              ? null
+              : DateTime.parse(json['lastTime'] as String);
+
+Map<String, dynamic> _$BeaconPeriodicSamplingConfigurationToJson(
+        BeaconPeriodicSamplingConfiguration instance) =>
+    <String, dynamic>{
+      if (instance.$type case final value?) '__type': value,
+      if (instance.lastTime?.toIso8601String() case final value?)
+        'lastTime': value,
+      'interval': instance.interval.inMicroseconds,
+      'duration': instance.duration.inMicroseconds,
+      'beaconRegions': instance.beaconRegions.map((e) => e.toJson()).toList(),
+      'beaconDistance': instance.beaconDistance,
+      'includedBeaconProximities': instance.includedBeaconProximities
+          .map((e) => _$ProximityEnumMap[e]!)
+          .toList(),
     };
 
 BeaconRegion _$BeaconRegionFromJson(Map<String, dynamic> json) => BeaconRegion(

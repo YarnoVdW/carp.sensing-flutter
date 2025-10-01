@@ -169,6 +169,38 @@ class BeaconRangingPeriodicSamplingConfiguration extends SamplingConfiguration {
       FromJsonFactory().fromJson<BeaconRangingPeriodicSamplingConfiguration>(json);
 }
 
+/// A sampling configuration specifying how to scan for iBeacon devices.
+///
+/// The regions of the beacons to monitor are specified in the [beaconRegions]
+/// list. The [beaconDistance] is used to determine the proximity to the beacon,
+/// with a default value of 2 meters.
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
+class BeaconPeriodicSamplingConfiguration extends PeriodicSamplingConfiguration {
+  /// List of beacon regions to monitor and range.
+  List<BeaconRegion> beaconRegions;
+
+  /// The distance in meters to consider a beacon as "in range".
+  int beaconDistance;
+
+  /// The included beacon proximities to consider.
+  List<Proximity> includedBeaconProximities;
+
+  BeaconPeriodicSamplingConfiguration({
+    required super.interval,
+    required super.duration,
+    this.beaconRegions = const [],
+    this.beaconDistance = 2,
+    this.includedBeaconProximities = const [],
+  }) : super();
+
+  @override
+  Map<String, dynamic> toJson() => _$BeaconPeriodicSamplingConfigurationToJson(this);
+  @override
+  Function get fromJsonFunction => _$BeaconPeriodicSamplingConfigurationFromJson;
+  factory BeaconPeriodicSamplingConfiguration.fromJson(Map<String, dynamic> json) =>
+      FromJsonFactory().fromJson<BeaconPeriodicSamplingConfiguration>(json);
+}
+
 /// Beacon region to use when scanning for beacons.
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
 class BeaconRegion {

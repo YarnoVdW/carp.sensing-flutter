@@ -194,3 +194,114 @@ class BeaconProbe extends StreamProbe {
     }
   }
 }
+
+
+/// A Probe that periodically scans for nearby and visible iBeacon devices and collects a
+/// [BeaconData] measurement that lists each [BeaconDevice] found during the scan.
+///
+/// Uses a [BeaconRangingPeriodicSamplingConfiguration] for configuration the
+/// [beaconRegions] to include and the [beaconDistance].
+class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
+  @override
+  BeaconPeriodicSamplingConfiguration? get samplingConfiguration =>
+      super.samplingConfiguration as BeaconPeriodicSamplingConfiguration;
+
+  List<Region> get beaconRegions =>
+      samplingConfiguration?.beaconRegions.map((region) => region.toRegion()).toList() ?? [];
+
+  int get beaconDistance => samplingConfiguration?.beaconDistance ?? 2;
+
+  List<Proximity> get includedBeaconProximities => samplingConfiguration?.includedBeaconProximities ?? [];
+
+  Data? _data;
+
+  @override
+  Stream<dynamic> get bufferingStream async* {
+    await for (final monitoringResult in flutterBeacon.monitoring(beaconRegions)) {
+      if (monitoringResult.monitoringState == MonitoringState.inside) {
+        debug('$runtimeType - Entered region: ${monitoringResult.region.identifier}');
+
+        await for (final rangingResult in flutterBeacon.ranging(beaconRegions)) {
+          final closeBeacons = rangingResult.beacons.where((b) => b.accuracy <= beaconDistance).toList();
+
+          if (includedBeaconProximities.isNotEmpty) {
+            closeBeacons.retainWhere((b) => includedBeaconProximities.contains(b.proximity));
+          }
+
+          if (closeBeacons.isEmpty) {
+            debug('$runtimeType - No close beacons found, stopping ranging.');
+            continue;
+          }
+
+          for (var beacon in closeBeacons) {
+            debug('$runtimeType - Found close beacon: $beacon');
+            if (beacon.proximity == Proximity.immediate) {
+              debug('$runtimeType - Beacon is immediate: $beacon');
+            } else if (beacon.proximity == Proximity.near) {
+              debug('$runtimeType - Beacon is near: $beacon');
+            }
+          }
+
+          yield rangingResult;
+        }
+      } else if (monitoringResult.monitoringState == MonitoringState.outside) {
+        debug('$runtimeType - Exited region: ${monitoringResult.region.identifier}');
+      } else {
+        debug('$runtimeType - Unknown state for region: ${monitoringResult.region.identifier}');
+      }
+    }
+  }
+
+  @override
+  Future<Measurement?> getMeasurement() async => _data != null ? Measurement.fromData(_data!) : null;
+
+  @override
+  bool onInitialize() {
+    super.onInitialize();
+    if (beaconRegions.isEmpty) {
+      warning('$runtimeType - No beacon regions specified for monitoring. Will not start monitoring.');
+      return false;
+    }
+
+    try {
+      info('$runtimeType - Initializing iBeacon scanning...');
+      flutterBeacon.initializeScanning.then((_) {
+        info('$runtimeType - Initialized.');
+        return true;
+      }, onError: (Object error) {
+        warning('$runtimeType - Error while initializing scanner - $error');
+        return false;
+      });
+    } catch (error) {
+      warning('$runtimeType - Error while initializing scanner - $error');
+      return false;
+    }
+    return true;
+  }
+
+  @override
+  void onSamplingStart() {
+    _data = BeaconData(region: '');
+    debug('$runtimeType - Started beacon sampling');
+  }
+
+  @override
+  void onSamplingEnd() {
+    debug('$runtimeType - Ended beacon sampling');
+  }
+
+  @override
+  void onSamplingData(event) {
+    if (event is RangingResult) {
+      final closeBeacons = event.beacons.where((b) => b.accuracy <= beaconDistance).toList();
+
+      if (includedBeaconProximities.isNotEmpty) {
+        closeBeacons.retainWhere((b) => includedBeaconProximities.contains(b.proximity));
+      }
+
+      if (closeBeacons.isNotEmpty && _data is BeaconData) {
+        (_data as BeaconData).addBeaconDevicesFromRangingResults(event);
+      }
+    }
+  }
+}
