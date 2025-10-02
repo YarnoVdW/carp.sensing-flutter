@@ -232,7 +232,7 @@ class Wifi extends Data {
 /// A [Data] holding information of nearby Beacon devices.
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
 class BeaconData extends Data {
-  static const dataType = ConnectivitySamplingPackage.BEACON;
+  static const dataType = ConnectivitySamplingPackage.BEACONPERIODIC;
 
   /// The unique identifier of the region that this beacon belongs to.
   String region;

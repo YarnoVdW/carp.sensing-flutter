@@ -93,6 +93,8 @@ class ConnectivitySamplingPackage extends SmartphoneSamplingPackage {
         return WifiProbe();
       case BEACON:
         return BeaconProbe();
+      case BEACONPERIODIC:
+        return BeaconPeriodicProbe();
       default:
         return null;
     }
