@@ -29,45 +29,58 @@ class ConnectivitySamplingPackage extends SmartphoneSamplingPackage {
   ///  * Use a [BeaconRangingPeriodicSamplingConfiguration] for configuration.
   static const String BEACON = "${NameSpace.CARP}.beacon";
 
+  /// Measure type for periodic scanning of iBeacons.
+  /// Typically collects beacon identifiers (UUID, major, minor) and
+  /// estimated distance or RSSI.
+  ///  * Event-based (Periodic) measure - default every 10 minutes for 10 seconds.
+  ///  * Uses the [Smartphone] master device for data collection.
+  ///  * Use a [BeaconPeriodicSamplingConfiguration] for configuration.
+  static const String BEACONPERIODIC = "${NameSpace.CARP}.beaconperiodic";
+
   @override
-  DataTypeSamplingSchemeMap get samplingSchemes => DataTypeSamplingSchemeMap.from([
-        DataTypeSamplingScheme(
-          CamsDataTypeMetaData(
-            type: CONNECTIVITY,
-            displayName: "Connectivity Status",
-            timeType: DataTimeType.POINT,
-          ),
-        ),
-        DataTypeSamplingScheme(
+  DataTypeSamplingSchemeMap get samplingSchemes => DataTypeSamplingSchemeMap.from(
+        [
+          DataTypeSamplingScheme(
             CamsDataTypeMetaData(
-              type: BLUETOOTH,
-              displayName: "Bluetooth Scan of Nearby Devices",
-              timeType: DataTimeType.TIME_SPAN,
-              permissions: [Permission.bluetoothScan],
-            ),
-            PeriodicSamplingConfiguration(
-              interval: const Duration(minutes: 10),
-              duration: const Duration(seconds: 10),
-            )),
-        DataTypeSamplingScheme(
-            CamsDataTypeMetaData(
-              type: WIFI,
-              displayName: "Wifi Connectivity Status",
+              type: CONNECTIVITY,
+              displayName: "Connectivity Status",
               timeType: DataTimeType.POINT,
             ),
-            IntervalSamplingConfiguration(
-              interval: const Duration(minutes: 10),
-            )),
-        DataTypeSamplingScheme(
-          CamsDataTypeMetaData(
-            type: BEACON,
-            displayName: "Ranging iBeacons",
-            timeType: DataTimeType.POINT,
-            permissions: [Permission.bluetoothScan, Permission.locationAlways],
           ),
-          BeaconRangingPeriodicSamplingConfiguration(),
-        ),
-      ]);
+          DataTypeSamplingScheme(
+              CamsDataTypeMetaData(
+                type: BLUETOOTH,
+                displayName: "Bluetooth Scan of Nearby Devices",
+                timeType: DataTimeType.TIME_SPAN,
+                permissions: [Permission.bluetoothScan],
+              ),
+              PeriodicSamplingConfiguration(
+                interval: const Duration(minutes: 10),
+                duration: const Duration(seconds: 10),
+              )),
+          DataTypeSamplingScheme(
+              CamsDataTypeMetaData(
+                type: WIFI,
+                displayName: "Wifi Connectivity Status",
+                timeType: DataTimeType.POINT,
+              ),
+              IntervalSamplingConfiguration(
+                interval: const Duration(minutes: 10),
+              )),
+          DataTypeSamplingScheme(
+            CamsDataTypeMetaData(
+              type: BEACONPERIODIC,
+              displayName: "Ranging iBeacons",
+              timeType: DataTimeType.TIME_SPAN,
+              permissions: [Permission.bluetoothScan, Permission.locationAlways],
+            ),
+            BeaconPeriodicSamplingConfiguration(
+              interval: const Duration(minutes: 10),
+              duration: const Duration(seconds: 10),
+            ),
+          ),
+        ],
+      );
 
   @override
   Probe? create(String type) {
