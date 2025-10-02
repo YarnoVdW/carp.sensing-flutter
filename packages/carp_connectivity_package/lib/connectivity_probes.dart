@@ -195,7 +195,6 @@ class BeaconProbe extends StreamProbe {
   }
 }
 
-
 /// A Probe that periodically scans for nearby and visible iBeacon devices and collects a
 /// [BeaconData] measurement that lists each [BeaconDevice] found during the scan.
 ///
@@ -242,7 +241,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
             }
           }
 
-          yield rangingResult;
+          yield closeBeacons;
         }
       } else if (monitoringResult.monitoringState == MonitoringState.outside) {
         debug('$runtimeType - Exited region: ${monitoringResult.region.identifier}');
@@ -264,7 +263,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
     }
 
     try {
-      info('$runtimeType - Initializing iBeacon scanning...');
+      info('$runtimeType - Initializing iBeacon periodic scanning...');
       flutterBeacon.initializeScanning.then((_) {
         info('$runtimeType - Initialized.');
         return true;
