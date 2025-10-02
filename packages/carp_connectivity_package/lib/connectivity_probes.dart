@@ -310,7 +310,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
 
   void _startRanging(Region region) {
     _streamRanging = flutterBeacon.ranging([region]).listen((RangingResult result) {
-      final closeBeacons = result.beacons.where((beacon) => beacon.accuracy <= beaconDistance);
+      final closeBeacons = result.beacons.where((beacon) => (beacon.accuracy).abs() <= beaconDistance);
 
       for (var beacon in closeBeacons) {
         print('✅ beacon in range: ${region.proximityUUID}, ${beacon.accuracy} m');
