@@ -214,6 +214,9 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
 
   Data? _data;
 
+  StreamSubscription<MonitoringResult>? _streamMonitoring;
+  StreamSubscription<RangingResult>? _streamRanging;
+
   @override
   Stream<dynamic> get bufferingStream async* {
     await for (final monitoringResult in flutterBeacon.monitoring(beaconRegions)) {
@@ -255,52 +258,71 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
   Future<Measurement?> getMeasurement() async => _data != null ? Measurement.fromData(_data!) : null;
 
   @override
-  bool onInitialize() {
-    super.onInitialize();
-    if (beaconRegions.isEmpty) {
-      warning('$runtimeType - No beacon regions specified for monitoring. Will not start monitoring.');
-      return false;
-    }
-
-    try {
-      info('$runtimeType - Initializing iBeacon periodic scanning...');
-      flutterBeacon.initializeScanning.then((_) {
-        info('$runtimeType - Initialized.');
-        return true;
-      }, onError: (Object error) {
-        warning('$runtimeType - Error while initializing scanner - $error');
-        return false;
-      });
-    } catch (error) {
-      warning('$runtimeType - Error while initializing scanner - $error');
-      return false;
-    }
-    return true;
-  }
-
-  @override
   void onSamplingStart() {
     _data = BeaconData(region: '');
-    debug('$runtimeType - Started beacon sampling');
+    try {
+      info('Using beacon monitoring.');
+      _startMonitoring();
+    } catch (error) {
+      _data = Error(message: 'Error scanning for bluetooth - $error');
+    }
   }
 
   @override
   void onSamplingEnd() {
-    debug('$runtimeType - Ended beacon sampling');
+    info('stopping monitoring kinda');
+    _stopMonitoring();
   }
 
   @override
   void onSamplingData(event) {
     if (event is RangingResult) {
-      final closeBeacons = event.beacons.where((b) => b.accuracy <= beaconDistance).toList();
-
-      if (includedBeaconProximities.isNotEmpty) {
-        closeBeacons.retainWhere((b) => includedBeaconProximities.contains(b.proximity));
-      }
-
-      if (closeBeacons.isNotEmpty && _data is BeaconData) {
-        (_data as BeaconData).addBeaconDevicesFromRangingResults(event);
-      }
+      (_data as BeaconData).addBeaconDevicesFromRangingResults(event);
     }
+  }
+
+  Future<void> _startMonitoring() async {
+    info('start monitoring & initializing scanning.');
+    try {
+      await flutterBeacon.initializeScanning;
+    } catch (e) {
+      warning('error happened while initializing scanner $e');
+    }
+    info('initialized scanner');
+
+    List<Region> regions = beaconRegions.isEmpty ? [] : beaconRegions.map((beaconRegion) => beaconRegion).toList();
+
+    try {
+      _streamMonitoring = flutterBeacon.monitoring(regions).listen((MonitoringResult result) {
+        if (result.monitoringState == MonitoringState.inside) {
+          info('🚪 Entered region: ${result.region.identifier}');
+          _startRanging(result.region);
+        } else if (result.monitoringState == MonitoringState.outside) {
+          info('🚪 Exited region: ${result.region.identifier}');
+          _stopMonitoring();
+        }
+      });
+    } catch (e) {
+      info('Error starting monitoring: $e');
+    }
+  }
+
+  void _startRanging(Region region) {
+    _streamRanging = flutterBeacon.ranging([region]).listen((RangingResult result) {
+      final closeBeacons = result.beacons.where((beacon) => beacon.accuracy <= beaconDistance);
+
+      for (var beacon in closeBeacons) {
+        info('✅ beacon in range: ${region.proximityUUID}, ${beacon.accuracy} m');
+        (_data as BeaconData).addBeaconDevicesFromRangingResults(result);
+      }
+    });
+  }
+
+  void _stopMonitoring() {
+    info('Stopping monitoring.');
+    _streamRanging?.cancel();
+    _streamRanging = null;
+    _streamMonitoring?.cancel();
+    _streamMonitoring = null;
   }
 }
