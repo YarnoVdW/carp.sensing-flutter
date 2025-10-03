@@ -243,7 +243,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
               print('$runtimeType - Beacon is near: $beacon');
             }
           }
-
+          
           yield closeBeacons;
         }
       } else if (monitoringResult.monitoringState == MonitoringState.outside) {
@@ -270,7 +270,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
 
   @override
   void onSamplingEnd() {
-    info('stopping monitoring kinda');
+    print('stopping monitoring kinda');
     _stopMonitoring();
   }
 
@@ -314,7 +314,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
       final closeBeacons = result.beacons.where((beacon) => beacon.accuracy <= beaconDistance && beacon.accuracy > 0);
 
       for (var beacon in closeBeacons) {
-        print('✅ beacon in range: ${region.proximityUUID}, ${beacon.accuracy} m');
+        print('✅ beacon in range: ${region.proximityUUID}, ${beacon.accuracy} m | ${beacon.rssi} -> RSSI');
         (_data as BeaconData).addBeaconDevicesFromRangingResults(result);
       }
     });

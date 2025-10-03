@@ -41,23 +41,17 @@ class Connectivity extends Data {
 
   Connectivity() : super();
 
-  Connectivity.fromConnectivityResult(
-      List<connectivity.ConnectivityResult> result)
-      : super() {
-    connectivityStatus = result
-        .map((connectivity.ConnectivityResult e) => _parseConnectivityStatus(e))
-        .toList();
+  Connectivity.fromConnectivityResult(List<connectivity.ConnectivityResult> result) : super() {
+    connectivityStatus = result.map((connectivity.ConnectivityResult e) => _parseConnectivityStatus(e)).toList();
   }
 
   @override
   Function get fromJsonFunction => _$ConnectivityFromJson;
-  factory Connectivity.fromJson(Map<String, dynamic> json) =>
-      FromJsonFactory().fromJson<Connectivity>(json);
+  factory Connectivity.fromJson(Map<String, dynamic> json) => FromJsonFactory().fromJson<Connectivity>(json);
   @override
   Map<String, dynamic> toJson() => _$ConnectivityToJson(this);
 
-  static ConnectivityStatus _parseConnectivityStatus(
-      connectivity.ConnectivityResult result) {
+  static ConnectivityStatus _parseConnectivityStatus(connectivity.ConnectivityResult result) {
     switch (result) {
       case connectivity.ConnectivityResult.bluetooth:
         return ConnectivityStatus.bluetooth;
@@ -77,8 +71,7 @@ class Connectivity extends Data {
   }
 
   @override
-  String toString() =>
-      '${super.toString()}, connectivityStatus: $connectivityStatus';
+  String toString() => '${super.toString()}, connectivityStatus: $connectivityStatus';
 }
 
 /// A [Data] holding information of nearby Bluetooth devices.
@@ -98,15 +91,14 @@ class Bluetooth extends Data {
 
   /// The list of [BluetoothDevice] found in a scan.
   List<BluetoothDevice> get scanResult => _scanResult.values.toList();
-  set scanResult(List<BluetoothDevice> devices) => _scanResult.addEntries(
-      devices.map((device) => MapEntry(device.bluetoothDeviceId, device)));
+  set scanResult(List<BluetoothDevice> devices) =>
+      _scanResult.addEntries(devices.map((device) => MapEntry(device.bluetoothDeviceId, device)));
 
   Bluetooth({DateTime? startScan, this.endScan}) : super() {
     this.startScan = startScan ?? DateTime.now();
   }
 
-  void addBluetoothDevice(BluetoothDevice device) =>
-      _scanResult[device.bluetoothDeviceId] = device;
+  void addBluetoothDevice(BluetoothDevice device) => _scanResult[device.bluetoothDeviceId] = device;
 
   void addBluetoothDevicesFromScanResults(List<ScanResult> results) {
     for (var scanResult in results) {
@@ -123,8 +115,7 @@ class Bluetooth extends Data {
 
   @override
   Function get fromJsonFunction => _$BluetoothFromJson;
-  factory Bluetooth.fromJson(Map<String, dynamic> json) =>
-      FromJsonFactory().fromJson<Bluetooth>(json);
+  factory Bluetooth.fromJson(Map<String, dynamic> json) => FromJsonFactory().fromJson<Bluetooth>(json);
   @override
   Map<String, dynamic> toJson() => _$BluetoothToJson(this);
 
@@ -171,8 +162,7 @@ class BluetoothDevice {
         rssi: result.rssi,
       );
 
-  factory BluetoothDevice.fromRangingResult(Beacon result, String beaconName) =>
-      BluetoothDevice(
+  factory BluetoothDevice.fromRangingResult(Beacon result, String beaconName) => BluetoothDevice(
         bluetoothDeviceId: beaconName,
         bluetoothDeviceName: beaconName,
         connectable: false,
@@ -181,8 +171,7 @@ class BluetoothDevice {
         rssi: result.rssi,
       );
 
-  factory BluetoothDevice.fromJson(Map<String, dynamic> json) =>
-      _$BluetoothDeviceFromJson(json);
+  factory BluetoothDevice.fromJson(Map<String, dynamic> json) => _$BluetoothDeviceFromJson(json);
   Map<String, dynamic> toJson() => _$BluetoothDeviceToJson(this);
 
   @override
@@ -219,14 +208,12 @@ class Wifi extends Data {
 
   @override
   Function get fromJsonFunction => _$WifiFromJson;
-  factory Wifi.fromJson(Map<String, dynamic> json) =>
-      FromJsonFactory().fromJson<Wifi>(json);
+  factory Wifi.fromJson(Map<String, dynamic> json) => FromJsonFactory().fromJson<Wifi>(json);
   @override
   Map<String, dynamic> toJson() => _$WifiToJson(this);
 
   @override
-  String toString() =>
-      '${super.toString()}, SSID: $ssid, BSSID: $bssid, IP: $ip';
+  String toString() => '${super.toString()}, SSID: $ssid, BSSID: $bssid, IP: $ip';
 }
 
 /// A [Data] holding information of nearby Beacon devices.
@@ -243,8 +230,8 @@ class BeaconData extends Data {
 
   /// The list of [BeaconDevice] found in a scan.
   List<BeaconDevice> get scanResult => _scanResult.values.toList();
-  set scanResult(List<BeaconDevice> devices) => _scanResult
-      .addEntries(devices.map((device) => MapEntry(device.uuid, device)));
+  set scanResult(List<BeaconDevice> devices) =>
+      _scanResult.addEntries(devices.map((device) => MapEntry(device.uuid, device)));
 
   /// Creates a [BeaconData] instance with the specified region.
   BeaconData({required this.region}) : super();
@@ -266,20 +253,19 @@ class BeaconData extends Data {
         .toList();
   }
 
-  void addBeaconDevice(BeaconDevice device) =>
-      _scanResult[device.uuid] = device;
+  void addBeaconDevice(BeaconDevice device) => _scanResult[device.uuid] = device;
 
   void addBeaconDevicesFromRangingResults(RangingResult result) {
     region = result.region.identifier;
     for (var beacon in result.beacons) {
+      print('adding beacon as result.');
       addBeaconDevice(BeaconDevice.fromRegionAndBeacon(beacon));
     }
   }
 
   @override
   Function get fromJsonFunction => _$BeaconDataFromJson;
-  factory BeaconData.fromJson(Map<String, dynamic> json) =>
-      FromJsonFactory().fromJson<BeaconData>(json);
+  factory BeaconData.fromJson(Map<String, dynamic> json) => FromJsonFactory().fromJson<BeaconData>(json);
   @override
   Map<String, dynamic> toJson() => _$BeaconDataToJson(this);
 
@@ -327,8 +313,7 @@ class BeaconDevice {
           proximity: beacon.proximity,
         );
 
-  factory BeaconDevice.fromJson(Map<String, dynamic> json) =>
-      _$BeaconDeviceFromJson(json);
+  factory BeaconDevice.fromJson(Map<String, dynamic> json) => _$BeaconDeviceFromJson(json);
   Map<String, dynamic> toJson() => _$BeaconDeviceToJson(this);
 
   @override
