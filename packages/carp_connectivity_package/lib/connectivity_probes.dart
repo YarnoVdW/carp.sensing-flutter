@@ -277,6 +277,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
   @override
   void onSamplingData(event) {
     if (event is RangingResult) {
+      print('Event: ${event.beacons.first.rssi}');
       (_data as BeaconData).addBeaconDevicesFromRangingResults(event);
     }
   }
