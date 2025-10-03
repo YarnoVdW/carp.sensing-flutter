@@ -245,9 +245,9 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
 
             print(closeBeacons.isEmpty ? 'Close beacons was empoty' : 'Close beacons where found');
 
-            if (closeBeacons.isNotEmpty) {
+            //if (closeBeacons.isNotEmpty) {
               yield rangingResult;
-            }
+           // }
           }
         }
       }
