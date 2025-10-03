@@ -243,6 +243,8 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
                     (includedBeaconProximities.isEmpty || includedBeaconProximities.contains(beacon.proximity)))
                 .toList();
 
+            print(closeBeacons.isEmpty ? 'Close beacons was empoty' : 'Close beacons where found');
+
             if (closeBeacons.isNotEmpty) {
               yield Measurement.fromData(
                 BeaconData.fromRegionAndBeacons(
@@ -293,6 +295,9 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
 
   @override
   void onSamplingData(event) {
+    print('Received ranging result');
+    print(event is RangingResult ? 'is ranging result' : 'is not ranging result');
+    print(event.runtimeType);
     if (event is RangingResult) {
       debug('$runtimeType - Received ranging result with ${event.beacons.length} beacons');
       (_data as BeaconData).addBeaconDevicesFromRangingResults(event);
