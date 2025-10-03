@@ -221,7 +221,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
   @override
   Stream<dynamic> get bufferingStream => _rangingStream;
 
-  Stream<Measurement> get _rangingStream async* {
+  Stream<RangingResult> get _rangingStream async* {
     if (beaconRegions.isEmpty) {
       warning('$runtimeType - No beacon regions specified for ranging. Will not start ranging.');
       return;
@@ -246,12 +246,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
             print(closeBeacons.isEmpty ? 'Close beacons was empoty' : 'Close beacons where found');
 
             if (closeBeacons.isNotEmpty) {
-              yield Measurement.fromData(
-                BeaconData.fromRegionAndBeacons(
-                  region: rangingResult.region.identifier,
-                  beacons: closeBeacons,
-                ),
-              );
+              yield rangingResult;
             }
           }
         }
