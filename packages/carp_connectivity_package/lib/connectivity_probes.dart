@@ -228,9 +228,9 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
     }
 
     try {
-      await for (final monitoringResult in flutterBeacon.monitoring(beaconRegions)) {
+    //  await for (final monitoringResult in flutterBeacon.monitoring(beaconRegions)) {
         print('Started monitoring');
-        if (monitoringResult.monitoringState == MonitoringState.inside) {
+     //   if (monitoringResult.monitoringState == MonitoringState.inside) {
           print('INSIDE');
 
           await for (final rangingResult in flutterBeacon.ranging(beaconRegions)) {
@@ -248,8 +248,8 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
             //if (closeBeacons.isNotEmpty) {
               yield rangingResult;
            // }
-          }
-        }
+     //     }
+     //   }
       }
     } catch (error) {
       warning('$runtimeType - Error during ranging: $error');
