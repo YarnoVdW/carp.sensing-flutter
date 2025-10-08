@@ -228,28 +228,28 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
     }
 
     try {
-    //  await for (final monitoringResult in flutterBeacon.monitoring(beaconRegions)) {
-        print('Started monitoring');
-     //   if (monitoringResult.monitoringState == MonitoringState.inside) {
-          print('INSIDE');
+      //  await for (final monitoringResult in flutterBeacon.monitoring(beaconRegions)) {
+      print('Started monitoring');
+      //   if (monitoringResult.monitoringState == MonitoringState.inside) {
+      print('INSIDE');
 
-          await for (final rangingResult in flutterBeacon.ranging(beaconRegions)) {
-            print('Started ranging');
+      await for (final rangingResult in flutterBeacon.ranging(beaconRegions)) {
+        print('Started ranging');
 
-            final closeBeacons = rangingResult.beacons
-                .where((beacon) =>
-                    beacon.accuracy <= beaconDistance &&
-                    beacon.accuracy > 0 &&
-                    (includedBeaconProximities.isEmpty || includedBeaconProximities.contains(beacon.proximity)))
-                .toList();
+        final closeBeacons = rangingResult.beacons
+            .where((beacon) =>
+                beacon.accuracy <= beaconDistance &&
+                beacon.accuracy > 0 &&
+                (includedBeaconProximities.isEmpty || includedBeaconProximities.contains(beacon.proximity)))
+            .toList();
 
-            print(closeBeacons.isEmpty ? 'Close beacons was empoty' : 'Close beacons where found');
+        print(closeBeacons.isEmpty ? 'Close beacons was empoty' : 'Close beacons where found');
 
-            //if (closeBeacons.isNotEmpty) {
-              yield rangingResult;
-           // }
-     //     }
-     //   }
+        //if (closeBeacons.isNotEmpty) {
+        yield rangingResult;
+        // }
+        //     }
+        //   }
       }
     } catch (error) {
       warning('$runtimeType - Error during ranging: $error');
