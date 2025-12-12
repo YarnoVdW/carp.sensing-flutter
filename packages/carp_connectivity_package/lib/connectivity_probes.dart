@@ -285,6 +285,14 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
               'region': monitoringResult.region.toJson,
               'beacons': [],
             });
+          } else {
+            print('monitoring was not found, canceling stream');
+            await _streamRanging?.cancel();
+            _streamRanging = null;
+            yield RangingResult.from({
+              'region': monitoringResult.region.toJson,
+              'beacons': [],
+            });
           }
         }
       }
