@@ -282,14 +282,10 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
 
             print('yielding null result');
             yield null;
-            await _streamRanging?.cancel();
-            _streamRanging = null;
           } else {
             print('monitoring was not found, canceling stream');
 
             yield null;
-            await _streamRanging?.cancel();
-            _streamRanging = null;
           }
         }
       }
@@ -324,7 +320,6 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
     info('$runtimeType - Stopping beacon ranging.');
     _streamRanging?.cancel();
     _streamRanging = null;
-
     final bool foundBeaconsThisSampling = previousBeacons.isNotEmpty;
     _samplingHistory.add(foundBeaconsThisSampling);
     if (_samplingHistory.length > 2) {
