@@ -253,7 +253,12 @@ class BeaconData extends Data {
         .toList();
   }
 
-  void addBeaconDevice(BeaconDevice device) => _scanResult[device.uuid] = device;
+  void addBeaconDevice(BeaconDevice device) {
+    print('adding beacon as result in addbeacondevice');
+    print('scanresult length before: ${_scanResult.length}');
+    _scanResult[device.uuid] = device;
+    print('scanresult length after: ${_scanResult.length}');
+  }
 
   void addBeaconDevicesFromRangingResults(RangingResult result) {
     region = result.region.identifier;
