@@ -313,7 +313,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
               'beacons': beacons2,
             });
 
-            _data = BeaconData.fromRegionAndBeacons(region: region.identifier, beacons: beacons);
+            _data = BeaconData.fromRegionAndBeacons(region: region.identifier, beacons: const <Beacon>[]);
 
             yield emptyResult;
           } else {
