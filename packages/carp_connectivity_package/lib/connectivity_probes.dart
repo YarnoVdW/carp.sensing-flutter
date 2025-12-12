@@ -290,7 +290,10 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
               region: region.identifier,
               beacons: const <Beacon>[],
             );
+            await Future.delayed(const Duration(seconds: 15));
             yield emptyResult;
+
+            return;
           }
         }
       }
