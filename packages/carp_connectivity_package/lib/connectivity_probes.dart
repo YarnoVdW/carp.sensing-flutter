@@ -295,9 +295,22 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
                 macAddress: 'EMPTY',
               )
             ];
+
+            var beacons2 = [
+              Beacon(
+                proximityUUID: 'EMPTY',
+                major: 0,
+                minor: 0,
+                rssi: 0,
+                accuracy: 0,
+                proximity: Proximity.unknown,
+                txPower: 0,
+                macAddress: 'EMPTY',
+              ).toJson
+            ];
             var emptyResult = RangingResult.from({
-              'region': region,
-              'beacons': beacons,
+              'region': region.toJson,
+              'beacons': beacons2,
             });
 
             _data = BeaconData.fromRegionAndBeacons(region: region.identifier, beacons: beacons);
