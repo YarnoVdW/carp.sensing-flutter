@@ -279,15 +279,17 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
           } else if (monitoringResult.monitoringState == MonitoringState.outside ||
               monitoringResult.monitoringState == MonitoringState.unknown) {
             print('monitoring outside, canceling stream');
-            await _streamRanging?.cancel();
-            _streamRanging = null;
+
             print('yielding null result');
             yield null;
-          } else {
-            print('monitoring was not found, canceling stream');
             await _streamRanging?.cancel();
             _streamRanging = null;
+          } else {
+            print('monitoring was not found, canceling stream');
+
             yield null;
+            await _streamRanging?.cancel();
+            _streamRanging = null;
           }
         }
       }
@@ -353,7 +355,6 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
         rssi: 0,
         macAddress: 'EMPTY',
         txPower: 0,
-
       )));
     }
   }
