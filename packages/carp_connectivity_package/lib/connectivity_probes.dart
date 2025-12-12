@@ -279,8 +279,6 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
             }
           } else if (monitoringResult.monitoringState == MonitoringState.outside ||
               monitoringResult.monitoringState == MonitoringState.unknown) {
-            await Future.delayed(const Duration(seconds: 10));
-
             print('monitoring outside, canceling stream');
 
             print('yielding null result');
@@ -302,7 +300,13 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
               'region': region,
               'beacons': beacons,
             });
-            yield emptyResult;
+            print(emptyResult.toJson);
+            for (var i = 0; i < 10; i++) {
+              print('yielding mocked result $i');
+              yield emptyResult;
+
+              await Future.delayed(const Duration(seconds: 1));
+            }
           } else {
             print('monitoring was not found, canceling stream');
 
