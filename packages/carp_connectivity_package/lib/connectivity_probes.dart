@@ -13,18 +13,16 @@ class ConnectivityProbe extends StreamProbe {
   @override
   Future<bool> onStart() async {
     // collect the current connectivity status on sampling start
-    var connectivityStatus =
-        await connectivity.Connectivity().checkConnectivity();
-    addMeasurement(Measurement.fromData(
-        Connectivity.fromConnectivityResult(connectivityStatus)));
+    var connectivityStatus = await connectivity.Connectivity().checkConnectivity();
+    addMeasurement(Measurement.fromData(Connectivity.fromConnectivityResult(connectivityStatus)));
 
     return super.onStart();
   }
 
   @override
-  Stream<Measurement> get stream =>
-      connectivity.Connectivity().onConnectivityChanged.map((event) =>
-          Measurement.fromData(Connectivity.fromConnectivityResult(event)));
+  Stream<Measurement> get stream => connectivity.Connectivity()
+      .onConnectivityChanged
+      .map((event) => Measurement.fromData(Connectivity.fromConnectivityResult(event)));
 }
 
 // This probe requests access to location permissions (both on Android and iOS).
@@ -69,24 +67,17 @@ class BluetoothProbe extends BufferingPeriodicStreamProbe {
   Stream<dynamic> get bufferingStream => FlutterBluePlus.scanResults;
 
   @override
-  Future<Measurement?> getMeasurement() async =>
-      _data != null ? Measurement.fromData(_data!) : null;
+  Future<Measurement?> getMeasurement() async => _data != null ? Measurement.fromData(_data!) : null;
 
   // if a BT-specific sampling configuration is used, we need to
   // extract the services and remoteIds from it so FlutterBluePlus can
   // perform filtered scanning
-  List<Guid> get services => (samplingConfiguration
-          is BluetoothScanPeriodicSamplingConfiguration)
-      ? (samplingConfiguration as BluetoothScanPeriodicSamplingConfiguration)
-          .withServices
-          .map((e) => Guid(e))
-          .toList()
+  List<Guid> get services => (samplingConfiguration is BluetoothScanPeriodicSamplingConfiguration)
+      ? (samplingConfiguration as BluetoothScanPeriodicSamplingConfiguration).withServices.map((e) => Guid(e)).toList()
       : [];
 
-  List<String> get remoteIds => (samplingConfiguration
-          is BluetoothScanPeriodicSamplingConfiguration)
-      ? (samplingConfiguration as BluetoothScanPeriodicSamplingConfiguration)
-          .withRemoteIds
+  List<String> get remoteIds => (samplingConfiguration is BluetoothScanPeriodicSamplingConfiguration)
+      ? (samplingConfiguration as BluetoothScanPeriodicSamplingConfiguration).withRemoteIds
       : [];
 
   @override
@@ -97,8 +88,7 @@ class BluetoothProbe extends BufferingPeriodicStreamProbe {
       FlutterBluePlus.startScan(
         withServices: services,
         withRemoteIds: remoteIds,
-        timeout: samplingConfiguration?.duration ??
-            const Duration(milliseconds: DEFAULT_TIMEOUT),
+        timeout: samplingConfiguration?.duration ?? const Duration(milliseconds: DEFAULT_TIMEOUT),
       );
     } catch (error) {
       FlutterBluePlus.stopScan();
@@ -132,22 +122,17 @@ class BeaconProbe extends StreamProbe {
       super.samplingConfiguration as BeaconRangingPeriodicSamplingConfiguration;
 
   List<Region> get beaconRegions =>
-      samplingConfiguration?.beaconRegions
-          .map((region) => region.toRegion())
-          .toList() ??
-      [];
+      samplingConfiguration?.beaconRegions.map((region) => region.toRegion()).toList() ?? [];
 
   int get beaconDistance => samplingConfiguration?.beaconDistance ?? 2;
 
-  List<Proximity> get includedBeaconProximities =>
-      samplingConfiguration?.includedBeaconProximities ?? [];
+  List<Proximity> get includedBeaconProximities => samplingConfiguration?.includedBeaconProximities ?? [];
 
   @override
   bool onInitialize() {
     super.onInitialize();
     if (beaconRegions.isEmpty) {
-      warning(
-          '$runtimeType - No beacon regions specified for monitoring. Will not start monitoring.');
+      warning('$runtimeType - No beacon regions specified for monitoring. Will not start monitoring.');
       return false;
     }
 
@@ -169,21 +154,15 @@ class BeaconProbe extends StreamProbe {
 
   @override
   Stream<Measurement> get stream async* {
-    await for (final monitoringResult
-        in flutterBeacon.monitoring(beaconRegions)) {
+    await for (final monitoringResult in flutterBeacon.monitoring(beaconRegions)) {
       if (monitoringResult.monitoringState == MonitoringState.inside) {
-        debug(
-            '$runtimeType - Entered region: ${monitoringResult.region.identifier}');
+        debug('$runtimeType - Entered region: ${monitoringResult.region.identifier}');
 
-        await for (final rangingResult
-            in flutterBeacon.ranging(beaconRegions)) {
-          final closeBeacons = rangingResult.beacons
-              .where((b) => b.accuracy <= beaconDistance)
-              .toList();
+        await for (final rangingResult in flutterBeacon.ranging(beaconRegions)) {
+          final closeBeacons = rangingResult.beacons.where((b) => b.accuracy <= beaconDistance).toList();
 
           if (includedBeaconProximities.isNotEmpty) {
-            closeBeacons.retainWhere(
-                (b) => includedBeaconProximities.contains(b.proximity));
+            closeBeacons.retainWhere((b) => includedBeaconProximities.contains(b.proximity));
           }
 
           if (closeBeacons.isEmpty) {
@@ -208,11 +187,9 @@ class BeaconProbe extends StreamProbe {
           );
         }
       } else if (monitoringResult.monitoringState == MonitoringState.outside) {
-        debug(
-            '$runtimeType - Exited region: ${monitoringResult.region.identifier}');
+        debug('$runtimeType - Exited region: ${monitoringResult.region.identifier}');
       } else {
-        debug(
-            '$runtimeType - Unknown state for region: ${monitoringResult.region.identifier}');
+        debug('$runtimeType - Unknown state for region: ${monitoringResult.region.identifier}');
       }
     }
   }
@@ -232,17 +209,20 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
       super.samplingConfiguration as BeaconPeriodicSamplingConfiguration;
 
   List<Region> get beaconRegions =>
-      samplingConfiguration?.beaconRegions
-          .map((region) => region.toRegion())
-          .toList() ??
-      [];
+      samplingConfiguration?.beaconRegions.map((region) => region.toRegion()).toList() ?? [];
 
   int get beaconDistance => samplingConfiguration?.beaconDistance ?? 2;
 
-  List<Proximity> get includedBeaconProximities =>
-      samplingConfiguration?.includedBeaconProximities ?? [];
+  List<Proximity> get includedBeaconProximities => samplingConfiguration?.includedBeaconProximities ?? [];
 
-  List<dynamic> previousBeacons = [];
+  List<Beacon> previousBeacons = [];
+
+  final List<bool> _samplingHistory = [];
+
+  bool get _previousTwoFoundBeacons =>
+      _samplingHistory.length >= 2 &&
+      _samplingHistory[_samplingHistory.length - 2] &&
+      _samplingHistory[_samplingHistory.length - 1];
 
   Data? _data;
   StreamSubscription<RangingResult>? _streamRanging;
@@ -252,54 +232,42 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
 
   Stream<RangingResult> get _rangingStream async* {
     if (beaconRegions.isEmpty) {
-      warning(
-          '$runtimeType - No beacon regions specified for ranging. Will not start ranging.');
+      warning('$runtimeType - No beacon regions specified for ranging. Will not start ranging.');
       return;
     }
 
     try {
-      if (previousBeacons.isNotEmpty) {
-        await for (final rangingResult
-            in flutterBeacon.ranging(beaconRegions)) {
+      if (_previousTwoFoundBeacons) {
+        await for (final rangingResult in flutterBeacon.ranging(beaconRegions)) {
           print('Started ranging immediately');
 
           final closeBeacons = rangingResult.beacons
               .where((beacon) =>
                   beacon.accuracy <= beaconDistance &&
                   beacon.accuracy > 0 &&
-                  (includedBeaconProximities.isEmpty ||
-                      includedBeaconProximities.contains(beacon.proximity)))
+                  (includedBeaconProximities.isEmpty || includedBeaconProximities.contains(beacon.proximity)))
               .toList();
           previousBeacons.replaceRange(0, previousBeacons.length, closeBeacons);
 
-          print(closeBeacons.isEmpty
-              ? 'Close beacons was empoty'
-              : 'Close beacons where found');
+          print(closeBeacons.isEmpty ? 'Close beacons was empoty' : 'Close beacons where found');
 
           yield rangingResult;
         }
       } else {
-        await for (final monitoringResult
-            in flutterBeacon.monitoring(beaconRegions)) {
+        await for (final monitoringResult in flutterBeacon.monitoring(beaconRegions)) {
           if (monitoringResult.monitoringState == MonitoringState.inside) {
-            _streamRanging ??=
-                flutterBeacon.ranging(beaconRegions).listen((rangingResult) {
+            _streamRanging ??= flutterBeacon.ranging(beaconRegions).listen((rangingResult) {
               final closeBeacons = rangingResult.beacons
                   .where((beacon) =>
                       beacon.accuracy <= beaconDistance &&
                       beacon.accuracy > 0 &&
-                      (includedBeaconProximities.isEmpty ||
-                          includedBeaconProximities.contains(beacon.proximity)))
+                      (includedBeaconProximities.isEmpty || includedBeaconProximities.contains(beacon.proximity)))
                   .toList();
-              previousBeacons.replaceRange(
-                  0, previousBeacons.length, closeBeacons);
+              previousBeacons.replaceRange(0, previousBeacons.length, closeBeacons);
 
-              print(closeBeacons.isEmpty
-                  ? 'Close beacons was empty'
-                  : 'Close beacons were found');
+              print(closeBeacons.isEmpty ? 'Close beacons was empty' : 'Close beacons were found');
             });
-          } else if (monitoringResult.monitoringState ==
-                  MonitoringState.outside ||
+          } else if (monitoringResult.monitoringState == MonitoringState.outside ||
               monitoringResult.monitoringState == MonitoringState.unknown) {
             await _streamRanging?.cancel();
             _streamRanging = null;
@@ -312,8 +280,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
   }
 
   @override
-  Future<Measurement?> getMeasurement() async =>
-      _data != null ? Measurement.fromData(_data!) : null;
+  Future<Measurement?> getMeasurement() async => _data != null ? Measurement.fromData(_data!) : null;
 
   @override
   void onSamplingStart() {
@@ -339,21 +306,24 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
     _streamRanging?.cancel();
     _streamRanging = null;
 
+    final bool foundBeaconsThisSampling = previousBeacons.isNotEmpty;
+    _samplingHistory.add(foundBeaconsThisSampling);
+    if (_samplingHistory.length > 2) {
+      _samplingHistory.removeAt(0);
+    }
+
     if (_data is BeaconData) {
-      (_data as BeaconData).region =
-          beaconRegions.isNotEmpty ? beaconRegions.first.identifier : 'unknown';
+      (_data as BeaconData).region = beaconRegions.isNotEmpty ? beaconRegions.first.identifier : 'unknown';
     }
   }
 
   @override
   void onSamplingData(event) {
     print('Received ranging result');
-    print(
-        event is RangingResult ? 'is ranging result' : 'is not ranging result');
+    print(event is RangingResult ? 'is ranging result' : 'is not ranging result');
     print(event.runtimeType);
     if (event is RangingResult) {
-      debug(
-          '$runtimeType - Received ranging result with ${event.beacons.length} beacons');
+      debug('$runtimeType - Received ranging result with ${event.beacons.length} beacons');
       (_data as BeaconData).addBeaconDevicesFromRangingResults(event);
     }
   }
