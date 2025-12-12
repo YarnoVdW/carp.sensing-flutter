@@ -264,16 +264,6 @@ class BeaconData extends Data {
     region = result.region.identifier;
     if (result.beacons.isEmpty) {
       print('adding empty beacon as result.');
-      addBeaconDevice(BeaconDevice.fromRegionAndBeacon(Beacon(
-        proximityUUID: 'EMPTY',
-        major: 0,
-        minor: 0,
-        accuracy: 0,
-        proximity: Proximity.unknown,
-        rssi: 0,
-        macAddress: 'EMPTY',
-        txPower: 0,
-      )));
     }
     for (var beacon in result.beacons) {
       print('adding beacon as result.');
