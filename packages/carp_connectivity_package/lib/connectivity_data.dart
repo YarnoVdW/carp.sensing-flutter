@@ -260,7 +260,7 @@ class BeaconData extends Data {
     if (result.beacons.isEmpty) {
       print('adding empty beacon as result.');
       addBeaconDevice(BeaconDevice.fromRegionAndBeacon(Beacon(
-        proximityUUID: '',
+        proximityUUID: 'EMPTY',
         major: 0,
         minor: 0,
         accuracy: 0,

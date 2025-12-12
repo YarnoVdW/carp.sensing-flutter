@@ -236,7 +236,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
   @override
   Stream<dynamic> get bufferingStream => _rangingStream;
 
-  Stream<RangingResult> get _rangingStream async* {
+  Stream<RangingResult?> get _rangingStream async* {
     if (beaconRegions.isEmpty) {
       warning('$runtimeType - No beacon regions specified for ranging. Will not start ranging.');
       return;
@@ -281,20 +281,13 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
             print('monitoring outside, canceling stream');
             await _streamRanging?.cancel();
             _streamRanging = null;
-            RangingResult emptyResult = RangingResult.from({
-              'region': monitoringResult.region.toJson,
-              'beacons': <Beacon>[],
-            });
-            print('yielding empty result, $emptyResult');
-            yield emptyResult;
+            print('yielding null result');
+            yield null;
           } else {
             print('monitoring was not found, canceling stream');
             await _streamRanging?.cancel();
             _streamRanging = null;
-            yield RangingResult.from({
-              'region': monitoringResult.region.toJson,
-              'beacons': <Beacon>[],
-            });
+            yield null;
           }
         }
       }
@@ -349,6 +342,16 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
     if (event is RangingResult) {
       debug('$runtimeType - Received ranging result with ${event.beacons.length} beacons');
       (_data as BeaconData).addBeaconDevicesFromRangingResults(event);
+    } else {
+      print('Received null ranging result');
+      (_data as BeaconData).addBeaconDevice(BeaconDevice.fromRegionAndBeacon(Beacon(
+        proximityUUID: 'EMPTY',
+        major: 0,
+        minor: 0,
+        accuracy: 0,
+        proximity: Proximity.unknown,
+        rssi: 0,
+      )));
     }
   }
 }
