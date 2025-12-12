@@ -316,6 +316,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
             _data = BeaconData.fromRegionAndBeacons(region: region.identifier, beacons: const <Beacon>[]);
 
             yield emptyResult;
+            onSamplingEnd();
           } else {
             print('monitoring was not found, canceling stream');
 
