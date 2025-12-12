@@ -294,7 +294,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
                 proximity: Proximity.unknown,
                 txPower: 0,
                 macAddress: 'EMPTY',
-              )
+              ).toJson
             ];
 
             yield RangingResult.from({
