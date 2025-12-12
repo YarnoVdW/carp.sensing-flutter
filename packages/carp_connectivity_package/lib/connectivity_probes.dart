@@ -279,6 +279,8 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
             }
           } else if (monitoringResult.monitoringState == MonitoringState.outside ||
               monitoringResult.monitoringState == MonitoringState.unknown) {
+            await Future.delayed(const Duration(seconds: 10));
+
             print('monitoring outside, canceling stream');
 
             print('yielding null result');
