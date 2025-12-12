@@ -285,13 +285,15 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
             var region = Region(identifier: 'EMPTY', proximityUUID: 'EMPTY', major: 0, minor: 0).toJson;
             print(region);
             var beacons = [
-              BeaconDevice(
-                uuid: 'EMPTY',
+              Beacon(
+                proximityUUID: 'EMPTY',
                 major: 0,
                 minor: 0,
                 rssi: 0,
                 accuracy: 0,
                 proximity: Proximity.unknown,
+                txPower: 0,
+                macAddress: 'EMPTY',
               )
             ];
 
