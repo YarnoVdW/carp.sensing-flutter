@@ -351,6 +351,9 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
         accuracy: 0,
         proximity: Proximity.unknown,
         rssi: 0,
+        macAddress: 'EMPTY',
+        txPower: 0,
+
       )));
     }
   }

@@ -271,6 +271,8 @@ class BeaconData extends Data {
         accuracy: 0,
         proximity: Proximity.unknown,
         rssi: 0,
+        macAddress: 'EMPTY',
+        txPower: 0,
       )));
     }
     for (var beacon in result.beacons) {
