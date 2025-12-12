@@ -282,9 +282,22 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
             print('monitoring outside, canceling stream');
 
             print('yielding null result');
+            var region = Region(identifier: 'EMPTY', proximityUUID: 'EMPTY', major: 0, minor: 0).toJson;
+            print(region);
+            var beacons = [
+              BeaconDevice(
+                uuid: 'EMPTY',
+                major: 0,
+                minor: 0,
+                rssi: 0,
+                accuracy: 0,
+                proximity: Proximity.unknown,
+              )
+            ];
+
             yield RangingResult.from({
-              'region': Region(identifier: 'EMPTY', proximityUUID: 'EMPTY', major: 0, minor: 0).toJson,
-              'beacons': [],
+              'region': region,
+              'beacons': beacons,
             });
           } else {
             print('monitoring was not found, canceling stream');
