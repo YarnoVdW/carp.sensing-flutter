@@ -225,7 +225,7 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
     }
 
     final last = _samplingHistory[_samplingHistory.length - 1];
-    final secondLast = _samplingHistory.length >= 2 ? _samplingHistory[_samplingHistory.length - 2] : false;
+    final secondLast = _samplingHistory.length >= 2 ? _samplingHistory[_samplingHistory.length - 2] : true;
 
     return last || secondLast;
   }
