@@ -256,7 +256,8 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
       } else {
         await for (final monitoringResult in flutterBeacon.monitoring(beaconRegions)) {
           if (monitoringResult.monitoringState == MonitoringState.inside) {
-            _streamRanging ??= flutterBeacon.ranging(beaconRegions).listen((rangingResult) {
+            print('monitoring inside');
+            await for (final rangingResult in flutterBeacon.ranging(beaconRegions)) {
               final closeBeacons = rangingResult.beacons
                   .where((beacon) =>
                       beacon.accuracy <= beaconDistance &&
@@ -266,9 +267,12 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
               previousBeacons.replaceRange(0, previousBeacons.length, closeBeacons);
 
               print(closeBeacons.isEmpty ? 'Close beacons was empty' : 'Close beacons were found');
-            });
+
+              yield rangingResult;
+            }
           } else if (monitoringResult.monitoringState == MonitoringState.outside ||
               monitoringResult.monitoringState == MonitoringState.unknown) {
+            print('monitoring outside, canceling stream');
             await _streamRanging?.cancel();
             _streamRanging = null;
           }
