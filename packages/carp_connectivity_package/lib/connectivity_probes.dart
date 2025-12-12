@@ -329,7 +329,14 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
   }
 
   @override
-  Future<Measurement?> getMeasurement() async => _data != null ? Measurement.fromData(_data!) : null;
+  Future<Measurement?> getMeasurement() async {
+    print('getting measurement');
+    if (_data == null) {
+      print('data was null');
+    }
+    print(_data!.toJson());
+    return _data != null ? Measurement.fromData(_data!) : null;
+  }
 
   @override
   void onSamplingStart() {
