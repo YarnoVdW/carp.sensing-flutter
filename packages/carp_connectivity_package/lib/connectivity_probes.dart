@@ -296,11 +296,11 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
                 macAddress: 'EMPTY',
               ).toJson
             ];
-
-            yield RangingResult.from({
+            var emptyResult = RangingResult.from({
               'region': region,
               'beacons': beacons,
             });
+            yield emptyResult;
           } else {
             print('monitoring was not found, canceling stream');
 
