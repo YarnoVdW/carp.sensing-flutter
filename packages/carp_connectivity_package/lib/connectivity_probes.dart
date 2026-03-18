@@ -220,7 +220,6 @@ class BeaconPeriodicProbe extends BufferingPeriodicStreamProbe {
   final List<bool> _samplingHistory = [];
 
   bool get _previousTwoFoundBeacons {
-    return false;
     if (_samplingHistory.isEmpty) {
       return true;
     }
