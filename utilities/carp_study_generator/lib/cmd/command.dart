@@ -1,3 +1,5 @@
+// ignore_for_file: invalid_use_of_visible_for_testing_member
+
 part of '../carp_study_generator.dart';
 
 /// The interface for all CARP Commands.
@@ -20,13 +22,16 @@ abstract class AbstractCommand implements Command {
     return _uri!;
   }
 
-  String get clientId => _yaml['server']['client_id'].toString();
-  String get clientSecret => _yaml['server']['client_secret'].toString();
+  CarpApp get app => _app ??= CarpApp(name: "CAWS @ DTU", uri: uri);
+
+  // String get clientId => _yaml['server']['client_id'].toString();
+  // String get clientSecret => _yaml['server']['client_secret'].toString();
   String get username => _yaml['server']['username'].toString();
   String get password => _yaml['server']['password'].toString();
 
-  String? get studyId => _yaml['study']['study_id'].toString();
-  // String? get studyDeploymentId => _yaml['study']['study_deployment_id'];
+  String get studyId => _yaml['study']['study_id'].toString();
+  String get studyDeploymentId =>
+      _yaml['study']['study_deployment_id'].toString();
 
   String get protocolPath => _yaml['protocol']['path'].toString();
   String get consentPath => _yaml['consent']['path'].toString();
@@ -48,9 +53,8 @@ abstract class AbstractCommand implements Command {
     CarpDataManager();
     ResearchPackage.ensureInitialized();
     CognitionPackage.ensureInitialized();
-
-    // make sure not to mess with CAMS
-    Settings().saveAppTaskQueue = false;
+    SharedPreferences.setMockInitialValues({});
+    Settings().debugLevel = DebugLevel.none;
 
     _yaml ??= loadYaml(File('carp/carpspec.yaml').readAsStringSync());
 
@@ -67,53 +71,40 @@ abstract class AbstractCommand implements Command {
   }
 
   /// The configuration of the CARP server app.
-  CarpApp get app {
-    if (_app == null) {
-      try {
-        if (studyId == null) throw Exception("A study ID must be provided");
-        if (studyId!.isEmpty) {
-          throw Exception("The study ID cannot be empty - '$studyId'");
-        }
-      } catch (e) {
-        throw Exception("A valid study ID is not provided");
-      }
-
-      _app = CarpApp(
-        name: "CAWS @ DTU",
-        uri: uri,
-        studyId: studyId,
-      );
-
-      print(_app);
+  Future<void> configure() async {
+    if (studyId.isEmpty) {
+      throw Exception("The study ID cannot be empty - '$studyId'");
     }
-    return _app!;
+
+    await CarpAuthService().configure(authProperties);
+
+    CarpService().configure(
+      app,
+      SmartphoneStudy(
+        studyId: studyId,
+        studyDeploymentId: studyDeploymentId,
+        deviceRoleName: 'ignored',
+      ),
+    );
   }
 
-  // The authentication configuration
-  CarpAuthProperties get authProperties {
-    if (_authProperties == null) {}
-    CarpAuthProperties(
-      authURL: uri,
-      clientId: 'studies-app',
-      redirectURI: Uri.parse('carp-studies-auth://auth'),
-      // For authentication at CAWS the path is '/auth/realms/Carp'
-      discoveryURL: uri.replace(pathSegments: [
-        'auth',
-        'realms',
-        'Carp',
-      ]),
-    );
-    return _authProperties!;
-  }
+  /// The authentication configuration
+  CarpAuthProperties get authProperties =>
+      _authProperties ??= CarpAuthProperties(
+        authURL: uri,
+        clientId: 'studies-app',
+        redirectURI: Uri.parse('carp-studies-auth://auth'),
+        // For authentication at CAWS the path is '/auth/realms/Carp'
+        discoveryURL: uri.replace(pathSegments: ['auth', 'realms', 'Carp']),
+      );
 
   /// Authenticate at the CARP server.
   Future<void> authenticate() async {
-    print('CARP app: $app');
-    CarpService().configure(app);
-    print('Authenticating to the CARP Server...');
+    await configure();
     await CarpAuthService().authenticateWithUsernamePassword(
-        username: username, password: password);
-    print("Authenticated as user: '$username'");
+      username: username,
+      password: password,
+    );
     CarpProtocolService().configureFrom(CarpService());
   }
 }
