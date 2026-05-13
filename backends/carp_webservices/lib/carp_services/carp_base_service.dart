@@ -48,8 +48,7 @@ abstract class CarpBaseService {
   CarpApp get app {
     if (_app == null) {
       throw CarpServiceException(
-        "CARP Service not configured. Call 'configure()' first.",
-      );
+          message: "CARP Service not configured. Call 'configure()' first.");
     } else {
       return _app!;
     }
@@ -57,9 +56,6 @@ abstract class CarpBaseService {
 
   /// Has this service been configured?
   bool get isConfigured => (_app != null);
-
-  @override
-  String toString() => '$runtimeType - ${app.name} [${app.uri}]';
 
   /// Configure the this instance of a Carp Service.
   ///
@@ -89,7 +85,8 @@ abstract class CarpBaseService {
     } else if (study != null && study?.studyId != null) {
       return study!.studyId!;
     } else {
-      throw CarpServiceException('No study ID specified for CAWS endpoint.');
+      throw CarpServiceException(
+          message: 'No study ID specified for CAWS endpoint.');
     }
   }
 
@@ -103,22 +100,7 @@ abstract class CarpBaseService {
     if (study != null) return study!.studyDeploymentId;
 
     throw CarpServiceException(
-      'No study deployment ID specified for CAWS end point.',
-    );
-  }
-
-  /// Resolve the primary device role name.
-  ///
-  /// Returns [deviceRoleName] if not null. Otherwise returns the device role
-  /// name specified in the [study], if available.
-  /// Throws an error if device role name cannot be resolved.
-  String getPrimaryDeviceRoleName([String? deviceRoleName]) {
-    if (deviceRoleName != null) return deviceRoleName;
-    if (study != null) return study!.deviceRoleName;
-
-    throw CarpServiceException(
-      'No primary device role name specified for CAWS end point.',
-    );
+        message: 'No study deployment ID specified for CAWS end point.');
   }
 
   /// The endpoint name for this service at CARP.
@@ -134,15 +116,15 @@ abstract class CarpBaseService {
   Map<String, String> get headers {
     if (CarpAuthService().currentUser.token == null) {
       throw CarpServiceException(
-        "OAuth token is null. Call 'CarpAuthService().authenticate()' first.",
-      );
+          message:
+              "OAuth token is null. Call 'CarpAuthService().authenticate()' first.");
     }
 
     return {
       "Content-Type": "application/json",
       "Authorization":
           "bearer ${CarpAuthService().currentUser.token!.accessToken}",
-      "cache-control": "no-cache",
+      "cache-control": "no-cache"
     };
   }
 
@@ -151,25 +133,52 @@ abstract class CarpBaseService {
   ///
   /// If [endpointName] is not specified, the default [rpcEndpointName] is used.
   ///
-  /// Returns either a JSON map as `Map<String, dynamic>`or JSON list as
-  /// `List<dynamic>`.
+  /// Returns a JSON map, mapping a key (String) to a json object (dynamic).
+  /// If the request returns a list (i.e,. a `[...]` JSON format), this
+  /// list is mapped to a json key/value map with only one object called `items`.
+  /// This would look like:
   ///
-  /// Throws [CarpServiceRequestException] on errors.
-  Future<dynamic> _rpc(ServiceRequest request, [String? endpointName]) async {
+  /// ```json
+  /// {
+  ///   items: [
+  ///     item_1,
+  ///     item_2,
+  ///     ...
+  ///   ]
+  /// }
+  /// ```
+  Future<Map<String, dynamic>> _rpc(
+    ServiceRequest request, [
+    String? endpointName,
+  ]) async {
     _endpointName = endpointName ?? rpcEndpointName;
-    final requestBody = toJsonString(request.toJson());
+    final body = toJsonString(request.toJson());
 
-    debug('REQUEST: POST $rpcEndpointUri\n$requestBody');
+    debug('REQUEST: POST $rpcEndpointUri\n$body');
     http.Response response = await httpr.post(
       Uri.encodeFull(rpcEndpointUri),
       headers: headers,
-      body: requestBody,
+      body: body,
     );
-    // int httpStatusCode = response.statusCode;
-    // String responseBody = response.body;
-    debug('RESPONSE: ${response.statusCode}\n${response.body}');
+    int httpStatusCode = response.statusCode;
+    String responseBody = response.body;
+    debug('RESPONSE: $httpStatusCode\n$responseBody');
 
-    return _handleResponse(response);
+    // Check if this is a json list or an empty string
+    // If so turn it into a valid json map
+    if (responseBody.startsWith('[')) responseBody = '{"items":$responseBody}';
+    if (responseBody.isEmpty) responseBody = '{}';
+
+    Map<String, dynamic> responseJson =
+        json.decode(responseBody) as Map<String, dynamic>;
+
+    if (httpStatusCode == HttpStatus.ok ||
+        httpStatusCode == HttpStatus.created) {
+      return responseJson;
+    }
+
+    // All other cases are treated as an error.
+    throw CarpServiceException.fromMap(httpStatusCode, responseJson);
   }
 
   /// Sends an HTTP GET request to the given [url] for this CAWS service.
@@ -261,34 +270,18 @@ abstract class CarpBaseService {
   /// See issue : https://github.com/cph-cachet/carp.sensing-flutter/issues/369
   http.Response _clean(http.Response response) =>
       response.body.startsWith('<html>')
-      ? http.Response(
-          '{'
-          '"statusCode": 502,'
-          '"message": "502 Bad Gateway.",'
-          '"path": "POST ${response.request?.url}"'
-          '}',
-          response.statusCode,
-          headers: response.headers,
-          isRedirect: response.isRedirect,
-          persistentConnection: response.persistentConnection,
-          reasonPhrase: response.reasonPhrase,
-          request: response.request,
-        )
-      : response;
-
-  /// Handles an HTTP [response].
-  ///
-  /// Returns the JSON body if the response indicates success.
-  /// Note that this can be both a JSON map or a JSON list.
-  ///
-  /// Throws exceptions based on the status code, if not a success response.
-  dynamic _handleResponse(http.Response response) {
-    final status = response.statusCode;
-    final body = response.body.isEmpty ? '{}' : response.body;
-    final responseJson = json.decode(body);
-    if (status >= HttpStatus.ok && status < 300) return responseJson;
-
-    // All other cases are treated as an exception
-    throw CarpServiceRequestException.fromHttpStatus(status, responseJson);
-  }
+          ? http.Response(
+              '{'
+              '"statusCode": 502,'
+              '"message": "502 Bad Gateway.",'
+              '"path": "POST ${response.request?.url}"'
+              '}',
+              response.statusCode,
+              headers: response.headers,
+              isRedirect: response.isRedirect,
+              persistentConnection: response.persistentConnection,
+              reasonPhrase: response.reasonPhrase,
+              request: response.request,
+            )
+          : response;
 }

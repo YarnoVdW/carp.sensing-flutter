@@ -48,8 +48,7 @@ class ParticipationReference extends RPCCarpReference {
       return service.study!.participantRoleName!;
     } else {
       throw CarpServiceException(
-        'No participant role name specified for CAWS endpoint.',
-      );
+          message: 'No participant role name specified for CAWS endpoint.');
     }
   }
 
@@ -58,9 +57,7 @@ class ParticipationReference extends RPCCarpReference {
   /// Data which is not set equals null.
   Future<ParticipantData> getParticipantData() async =>
       ParticipantData.fromJson(
-        await _rpc(GetParticipantData(studyDeploymentId))
-            as Map<String, dynamic>,
-      );
+          await _rpc(GetParticipantData(studyDeploymentId)));
 
   /// Set participant [data] for the given [inputByParticipantRole] in this
   /// study deployment.
@@ -70,12 +67,9 @@ class ParticipationReference extends RPCCarpReference {
   Future<ParticipantData> setParticipantData(
     Map<String, Data> data, [
     String? inputByParticipantRole,
-  ]) async => ParticipantData.fromJson(
-    await _rpc(
-          SetParticipantData(studyDeploymentId, data, inputByParticipantRole),
-        )
-        as Map<String, dynamic>,
-  );
+  ]) async =>
+      ParticipantData.fromJson(await _rpc(
+          SetParticipantData(studyDeploymentId, data, inputByParticipantRole)));
 
   /// Get informed consent data for all participants (by role name) in this study
   /// deployment with [studyDeploymentId].
@@ -84,14 +78,13 @@ class ParticipationReference extends RPCCarpReference {
     Map<String, InformedConsentInput?> map = {};
 
     ParticipantData data = ParticipantData.fromJson(
-      await _rpc(GetParticipantData(studyDeploymentId)) as Map<String, dynamic>,
-    );
+        await _rpc(GetParticipantData(studyDeploymentId)));
 
     for (var roleData in data.roles) {
-      if (roleData.data.containsKey(InputType.INFORMED_CONSENT)) {
-        map[roleData.roleName] =
-            roleData.data[InputType.INFORMED_CONSENT] != null
-            ? roleData.data[InputType.INFORMED_CONSENT] as InformedConsentInput
+      if (roleData.data.containsKey(InformedConsentInput.type)) {
+        map[roleData.roleName] = roleData.data[InformedConsentInput.type] !=
+                null
+            ? roleData.data[InformedConsentInput.type] as InformedConsentInput
             : null;
       } else {
         map[roleData.roleName] = null;
@@ -108,9 +101,9 @@ class ParticipationReference extends RPCCarpReference {
   /// in the current [deployment] is used.
   ///
   /// Returns null if not available.
-  Future<InformedConsentInput?> getInformedConsentByRole([
-    String? roleName,
-  ]) async => (await getInformedConsent())[getParticipantRoleName(roleName)];
+  Future<InformedConsentInput?> getInformedConsentByRole(
+          [String? roleName]) async =>
+      (await getInformedConsent())[getParticipantRoleName(roleName)];
 
   /// Set informed [consent] for the given [inputByParticipantRole] in this
   /// study deployment.
@@ -120,14 +113,11 @@ class ParticipationReference extends RPCCarpReference {
     InformedConsentInput consent, [
     String? inputByParticipantRole,
   ]) async {
-    ParticipantData.fromJson(
-      await _rpc(
-            SetParticipantData(studyDeploymentId, {
-              InputType.INFORMED_CONSENT: consent,
-            }, getParticipantRoleName(inputByParticipantRole)),
-          )
-          as Map<String, dynamic>,
-    );
+    ParticipantData.fromJson(await _rpc(SetParticipantData(
+      studyDeploymentId,
+      {InformedConsentInput.type: consent},
+      getParticipantRoleName(inputByParticipantRole),
+    )));
   }
 
   /// Remove the informed for the given [inputByParticipantRole] in this
@@ -135,13 +125,10 @@ class ParticipationReference extends RPCCarpReference {
   /// If [inputByParticipantRole] is not specified, the role of the participant
   /// in the current [deployment] is used.
   Future<void> removeInformedConsent([String? inputByParticipantRole]) async {
-    ParticipantData.fromJson(
-      await _rpc(
-            SetParticipantData(studyDeploymentId, {
-              InputType.INFORMED_CONSENT: null,
-            }, getParticipantRoleName(inputByParticipantRole)),
-          )
-          as Map<String, dynamic>,
-    );
+    ParticipantData.fromJson(await _rpc(SetParticipantData(
+      studyDeploymentId,
+      {InformedConsentInput.type: null},
+      getParticipantRoleName(inputByParticipantRole),
+    )));
   }
 }

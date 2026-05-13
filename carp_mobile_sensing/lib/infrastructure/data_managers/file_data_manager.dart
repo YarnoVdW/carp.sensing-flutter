@@ -46,30 +46,22 @@ class FileDataManager extends AbstractDataManager {
       super.dataEndPoint! as FileDataEndPoint;
 
   @override
-  Future<void> configure({
-    required DataEndPoint dataEndPoint,
-    required SmartphoneDeployment deployment,
-    required Stream<Measurement> measurements,
-  }) async {
+  Future<void> initialize(
+    DataEndPoint dataEndPoint,
+    SmartphoneDeployment deployment,
+    Stream<Measurement> measurements,
+  ) async {
     assert(dataEndPoint is FileDataEndPoint);
-    await super.configure(
-      dataEndPoint: dataEndPoint,
-      deployment: deployment,
-      measurements: measurements,
-    );
+    await super.initialize(dataEndPoint, deployment, measurements);
 
     // _fileDataEndPoint = dataEndPoint as FileDataEndPoint;
     await Settings().getDeploymentBasePath(studyDeploymentId);
 
     if (fileDataEndPoint.encrypt) {
-      assert(
-        fileDataEndPoint.publicKey != null,
-        'A public key is required if files are to be encrypted.',
-      );
-      assert(
-        fileDataEndPoint.publicKey!.isNotEmpty,
-        'A non-empty public key is required if files are to be encrypted.',
-      );
+      assert(fileDataEndPoint.publicKey != null,
+          'A public key is required if files are to be encrypted.');
+      assert(fileDataEndPoint.publicKey!.isNotEmpty,
+          'A non-empty public key is required if files are to be encrypted.');
     }
 
     // Initializing the the local directory and file
@@ -119,12 +111,8 @@ class FileDataManager extends AbstractDataManager {
       final newFilename = await filename;
       _file = File(newFilename);
       info("Creating file '$newFilename'");
-      addEvent(
-        FileDataManagerEvent(
-          FileDataManagerEventTypes.fileCreated,
-          newFilename,
-        ),
-      );
+      addEvent(FileDataManagerEvent(
+          FileDataManagerEventTypes.fileCreated, newFilename));
     }
     return _file!;
   }
@@ -147,9 +135,7 @@ class FileDataManager extends AbstractDataManager {
     if (!_initialized) {
       info('File sink not ready -- delaying for 2 sec...');
       return Future.delayed(
-        const Duration(seconds: 2),
-        () => write(measurement),
-      );
+          const Duration(seconds: 2), () => write(measurement));
     }
 
     final json = jsonEncode(measurement);
@@ -159,8 +145,7 @@ class FileDataManager extends AbstractDataManager {
         // always add a comma directly after json
         activeSink.write('$json\n,\n');
         debug(
-          'Writing measurement to file - type: ${measurement.dataType.toString()}',
-        );
+            'Writing measurement to file - type: ${measurement.dataType.toString()}');
 
         await file.then((activeFile) async {
           await activeFile.length().then((len) {
@@ -217,20 +202,12 @@ class FileDataManager extends AbstractDataManager {
         //TODO : implement encryption
         // if the encrypted file gets another name, remember to
         // update _jsonFilePath
-        addEvent(
-          FileDataManagerEvent(
-            FileDataManagerEventTypes.fileEncrypted,
-            finalFilePath,
-          ),
-        );
+        addEvent(FileDataManagerEvent(
+            FileDataManagerEventTypes.fileEncrypted, finalFilePath));
       }
 
-      addEvent(
-        FileDataManagerEvent(
-          FileDataManagerEventTypes.fileClosed,
-          finalFilePath,
-        ),
-      );
+      addEvent(FileDataManagerEvent(
+          FileDataManagerEventTypes.fileClosed, finalFilePath));
     });
   }
 

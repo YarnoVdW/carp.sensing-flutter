@@ -4,7 +4,7 @@
  * Use of this source code is governed by a MIT-style license that can be
  * found in the LICENSE file.
  */
-part of '../../deployment.dart';
+part of '../carp_core_deployment.dart';
 
 /// Application service which allows deploying study protocols to participants
 /// and retrieving [PrimaryDeviceDeployment]'s for participating primary devices
@@ -44,12 +44,10 @@ abstract class DeploymentService {
   /// Get the status for a study deployment with the given [studyDeploymentId].
   /// Returns null if [studyDeploymentId] is not found.
   Future<StudyDeploymentStatus?> getStudyDeploymentStatus(
-    String studyDeploymentId,
-  );
+      String studyDeploymentId);
 
   /// Get the statuses for a set of deployments with the specified [studyDeploymentIds].
-  /// Returns null for IDs in [studyDeploymentIds] for which no deployment exists.
-  Future<List<StudyDeploymentStatus?>> getStudyDeploymentStatusList(
+  Future<List<StudyDeploymentStatus>> getStudyDeploymentStatusList(
     List<String> studyDeploymentIds,
   );
 

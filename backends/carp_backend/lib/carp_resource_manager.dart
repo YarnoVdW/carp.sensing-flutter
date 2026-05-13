@@ -37,21 +37,17 @@ class CarpResourceManager
 
   String? _cacheResourcePath;
 
-  final Map<Type, String> _resourceNames = {RPOrderedTask: 'informed_consent'};
+  final Map<Type, String> _resourceNames = {
+    RPOrderedTask: 'informed_consent',
+  };
 
   void _assertCarpService() {
-    assert(
-      CarpService().isConfigured,
-      "CARP Service has not been configured - call 'CarpService().configure()' first.",
-    );
-    assert(
-      CarpAuthService().currentUser.isAuthenticated,
-      "No user is authenticated - call 'CarpService().authenticate()' first.",
-    );
-    assert(
-      CarpService().study != null,
-      "No study is configured - set a valid study first.",
-    );
+    assert(CarpService().isConfigured,
+        "CARP Service has not been configured - call 'CarpService().configure()' first.");
+    assert(CarpAuthService().currentUser.isAuthenticated,
+        "No user is authenticated - call 'CarpService().authenticate()' first.");
+    assert(CarpService().study != null,
+        "No study is configured - set a valid study first.");
   }
 
   String get _studyDeploymentId => CarpService().study!.studyDeploymentId;
@@ -67,8 +63,8 @@ class CarpResourceManager
   Future<String> _cacheFilename(Type resource) async {
     if (_cacheResourcePath == null) {
       final directory = await Directory(
-        '${await Settings().getDeploymentBasePath(_studyDeploymentId)}/$RESOURCE_PATH',
-      ).create(recursive: true);
+              '${await Settings().getDeploymentBasePath(_studyDeploymentId)}/$RESOURCE_PATH')
+          .create(recursive: true);
       _cacheResourcePath = directory.path;
     }
     return '$_cacheResourcePath/${_resourceNames[resource]}.json';
@@ -87,8 +83,7 @@ class CarpResourceManager
     if (!refresh) {
       try {
         info(
-          "Getting resource of type '$resource' from file cache : $filename",
-        );
+            "Getting resource of type '$resource' from file cache : $filename");
         String jsonString = File(filename).readAsStringSync();
         result = json.decode(jsonString) as Map<String, dynamic>;
       } catch (exception) {
@@ -104,9 +99,8 @@ class CarpResourceManager
       if (CarpService().study?.studyId == null) {
         warning("Study id is null - cannot get informed consent from server");
       } else {
-        DocumentSnapshot? document = await CarpService()
-            .document(_getResourcePath(resource))
-            .get();
+        DocumentSnapshot? document =
+            await CarpService().document(_getResourcePath(resource)).get();
         info('Resource downloaded : $document');
 
         result = (document != null) ? document.data : null;
@@ -130,9 +124,8 @@ class CarpResourceManager
     _assertCarpService();
     info("Uploading resource: $resource");
 
-    DocumentReference reference = CarpService().document(
-      _getResourcePath(resource.runtimeType),
-    );
+    DocumentReference reference =
+        CarpService().document(_getResourcePath(resource.runtimeType));
     await reference.get();
     await reference.setData(resource.toJson());
 
@@ -143,13 +136,11 @@ class CarpResourceManager
     _assertCarpService();
     info("Deleting resource of type '$resource'.");
 
-    DocumentReference reference = CarpService().document(
-      _getResourcePath(resource),
-    );
+    DocumentReference reference =
+        CarpService().document(_getResourcePath(resource));
     await reference.delete();
-    DocumentSnapshot? document = await CarpService()
-        .document(_getResourcePath(resource))
-        .get();
+    DocumentSnapshot? document =
+        await CarpService().document(_getResourcePath(resource)).get();
 
     _removeCachedResource(resource);
 
@@ -185,13 +176,11 @@ class CarpResourceManager
   RPOrderedTask? informedConsent;
 
   @override
-  Future<RPOrderedTask?> getConsentDocument({bool refresh = false}) async {
+  Future<RPOrderedTask?> getInformedConsent({bool refresh = false}) async {
     // make sure json serialization for RP classes is initialized
     ResearchPackage.ensureInitialized();
-    Map<String, dynamic>? json = await _getResource(
-      RPOrderedTask,
-      refresh: refresh,
-    );
+    Map<String, dynamic>? json =
+        await _getResource(RPOrderedTask, refresh: refresh);
 
     if (json == null) return null;
 
@@ -207,13 +196,13 @@ class CarpResourceManager
   }
 
   @override
-  Future<bool> setConsentDocument(RPOrderedTask informedConsent) async {
+  Future<bool> setInformedConsent(RPOrderedTask informedConsent) async {
     this.informedConsent = informedConsent;
     return await _setResource(informedConsent);
   }
 
   @override
-  Future<bool> deleteConsentDocument() async =>
+  Future<bool> deleteInformedConsent() async =>
       await _deleteResource(RPOrderedTask);
 
   // --------------------------------------------------------------------------
@@ -231,8 +220,8 @@ class CarpResourceManager
   Future<String> _cacheLocalizationFilename(Locale locale) async {
     if (_cacheLocalizationPath == null) {
       final directory = await Directory(
-        '${await Settings().getDeploymentBasePath(_studyDeploymentId)}/$LOCALIZATION_PATH',
-      ).create(recursive: true);
+              '${await Settings().getDeploymentBasePath(_studyDeploymentId)}/$LOCALIZATION_PATH')
+          .create(recursive: true);
       _cacheLocalizationPath = directory.path;
     }
     return '$_cacheLocalizationPath/${locale.languageCode}.json';
@@ -261,8 +250,7 @@ class CarpResourceManager
         result = json.decode(jsonString) as Map<String, dynamic>;
       } catch (exception) {
         warning(
-          "Failed to read localization from cache of type '$locale' - $exception",
-        );
+            "Failed to read localization from cache of type '$locale' - $exception");
       }
     }
 
@@ -273,14 +261,11 @@ class CarpResourceManager
       if (CarpService().study?.studyId == null) {
         warning("Study id is null - cannot get language locale from server");
       } else {
-        info(
-          'Getting language locale from server. '
-          'study_id: ${CarpService().study?.studyId}, '
-          'path: ${_getLocalizationsPath(locale)}',
-        );
-        final document = await CarpService()
-            .document(_getLocalizationsPath(locale))
-            .get();
+        info('Getting language locale from server. '
+            'study_id: ${CarpService().study?.studyId}, '
+            'path: ${_getLocalizationsPath(locale)}');
+        final document =
+            await CarpService().document(_getLocalizationsPath(locale)).get();
 
         info('Localization downloaded : $document');
 
@@ -305,17 +290,13 @@ class CarpResourceManager
 
   @override
   Future<bool> setLocalizations(
-    Locale locale,
-    Map<String, dynamic> localizations,
-  ) async {
+      Locale locale, Map<String, dynamic> localizations) async {
     _assertCarpService();
     info(
-      'Setting language locale from path : ${_getLocalizationsPath(locale)}',
-    );
+        'Setting language locale from path : ${_getLocalizationsPath(locale)}');
 
-    DocumentReference reference = CarpService().document(
-      _getLocalizationsPath(locale),
-    );
+    DocumentReference reference =
+        CarpService().document(_getLocalizationsPath(locale));
     await reference.get(); //check if this already exists
     await reference.setData(localizations);
 
@@ -326,24 +307,20 @@ class CarpResourceManager
   Future<bool> deleteLocalizations(Locale locale) async {
     _assertCarpService();
     info(
-      'Deleting language locale from path : ${_getLocalizationsPath(locale)}',
-    );
+        'Deleting language locale from path : ${_getLocalizationsPath(locale)}');
 
-    DocumentReference reference = CarpService().document(
-      _getLocalizationsPath(locale),
-    );
+    DocumentReference reference =
+        CarpService().document(_getLocalizationsPath(locale));
     await reference.delete();
-    DocumentSnapshot? document = await CarpService()
-        .document(_getLocalizationsPath(locale))
-        .get();
+    DocumentSnapshot? document =
+        await CarpService().document(_getLocalizationsPath(locale)).get();
 
     // also trying to delete local cached version
     try {
       File(await _cacheLocalizationFilename(locale)).deleteSync();
     } catch (exception) {
       warning(
-        "Failed to delete local cache of localization for '$locale' - $exception",
-      );
+          "Failed to delete local cache of localization for '$locale' - $exception");
     }
 
     return (document == null);
@@ -363,9 +340,8 @@ class CarpResourceManager
   @override
   Future<Message?> getMessage(String messageId) async {
     _assertCarpService();
-    DocumentSnapshot? message = await CarpService()
-        .document('$MESSAGES_PATH/$messageId')
-        .get();
+    DocumentSnapshot? message =
+        await CarpService().document('$MESSAGES_PATH/$messageId').get();
     return (message != null) ? Message.fromJson(message.data) : null;
   }
 
@@ -376,9 +352,8 @@ class CarpResourceManager
     int? count = 20,
   }) async {
     _assertCarpService();
-    start ??= DateTime.fromMillisecondsSinceEpoch(
-      0,
-    ); // this is a looooooong time ago
+    start ??=
+        DateTime.fromMillisecondsSinceEpoch(0); // this is a looooooong time ago
     end ??= DateTime.now();
 
     // TODO - The query interface does not work - change back when issue is fixed
@@ -393,9 +368,8 @@ class CarpResourceManager
     // List<DocumentSnapshot> messages =
     //     await CarpService().documentsByQuery(_getMessagesQuery(start, end));
 
-    List<DocumentSnapshot> messages = await CarpService()
-        .collection(MESSAGES_PATH)
-        .documents;
+    List<DocumentSnapshot> messages =
+        await CarpService().collection(MESSAGES_PATH).documents;
 
     info('Messages downloaded - # : ${messages.length}');
 
@@ -423,9 +397,8 @@ class CarpResourceManager
   @override
   Future<void> deleteAllMessages() async {
     _assertCarpService();
-    List<DocumentSnapshot> documents = await CarpService()
-        .collection(MESSAGES_PATH)
-        .documents;
+    List<DocumentSnapshot> documents =
+        await CarpService().collection(MESSAGES_PATH).documents;
     for (var document in documents) {
       await CarpService()
           .collection(MESSAGES_PATH)

@@ -1,125 +1,116 @@
 /*
- * Copyright 2018-2025 the Technical University of Denmark (DTU).
+ * Copyright 2018-2022 Copenhagen Center for Health Technology (CACHET) at the
+ * Technical University of Denmark (DTU).
  * Use of this source code is governed by a MIT-style license that can be
  * found in the LICENSE file.
  */
 
 part of '../../runtime.dart';
 
-//-----------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------
 //                                        EXECUTORS
-//-----------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------
 
 /// The state of an [Executor].
 ///
 /// The runtime state has the following state machine:
 ///
 /// ```
-/// +---------------------------------------------------------------+      +-----------+
-/// |  +---------+    +-------------+    +---------+     +--------+ |   -> | undefined |
-/// |  | created | -> | initialized | -> | resumed | <-> | paused | |      +-----------+
-/// |  +---------+    +-------------+    +---------+     +--------+ |   -> | disposed  |
-/// +---------------------------------------------------------------+      +-----------+
+///    +----------------------------------------------------------------+      +-----------+
+///    |  +---------+    +-------------+    +---------+     +---------+ |   -> | undefined |
+///    |  | created | -> | initialized | -> | started | <-> | stopped | |      +-----------+
+///    |  +---------+    +-------------+    +---------+     +---------+ |
+///    |                                         |              |       |      +-----------+
+///    |                                         +--- restart --+       |   -> | disposed  |
+///    +----------------------------------------------------------------+      +-----------+
 /// ```
 enum ExecutorState {
   /// Created and ready to be initialized.
-  Created,
+  created,
 
-  /// Initialized and ready to be resumed.
-  Initialized,
+  /// Initialized and ready to be started.
+  initialized,
 
-  /// Resumed and actively collecting data.
-  Resumed,
+  /// Started and active in data collection. Can be restarted in this state.
+  started,
 
-  /// Paused not collecting data. Can be resumed in this state.
-  Paused,
-
-  /// Paused and not collecting data, but should be resumed again when possible.
-  /// This is typically used when a device is disconnected by the OS and
-  /// the reconnected, and the executor should be resumed again when possible.
-  PausedButShouldBeResumed,
+  /// Stopped and not collecting data. Can be started again in this state.
+  stopped,
 
   /// Permanently disposed. Cannot be used anymore.
-  Disposed,
+  disposed,
 
   /// Undefined state.
   ///
   /// Typically an executor becomes undefined if it cannot be initialized
   /// or if this executor (probe) is not supported on the specific phone / OS.
-  Undefined,
-}
-
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
-class SamplingState extends Serializable {
-  /// The runtime state of this executor.
-  ExecutorState state;
-
-  SamplingState(this.state);
-
-  @override
-  Function get fromJsonFunction => _$SamplingStateFromJson;
-  factory SamplingState.fromJson(Map<String, dynamic> json) =>
-      FromJsonFactory().fromJson<SamplingState>(json);
-  @override
-  Map<String, dynamic> toJson() => _$SamplingStateToJson(this);
+  undefined
 }
 
 /// A [Executor] is responsible for executing data collection based on a
 /// configuration [TConfig].
 ///
 /// The behavior of an executor is controlled by its life-cycle methods: [initialize],
-/// [resume], [pause], and [dispose]. A paused executor can be resumed again.
+/// [start], [stop], and [stop]. A [restart] can be used to restart an executor
+/// (e.g., if its configuration has changed).
 ///
-/// The [state] property reveals the probe's current state.
-/// The [stateEvents] is a stream of state changes which can be listen to as a
-/// broadcast stream.
+/// The [state] property reveals the probe's current runtime state.
+/// The [stateEvents] is a stream of state changes which can be listen to as a broadcast
+/// stream.
 ///
-/// If an error occurs the state of a probe becomes undefined. This is, for example,
-/// used when an exception occurs.
+/// If an error occurs the state of a probe becomes [undefined]. This is, for example,
+/// used when an exception occur.
 ///
-/// An Executor returns collected data in the [measurements] stream.
-/// This is the main usage of an executor. For example, to listens to all
-/// measurements generated in all studies running in a client, use:
+/// The executor returns collected data in the [measurements] stream. This is the main
+/// usage of an executor. For example, to listens to events and print them;
 ///
-/// ```
-/// SmartPhoneClientManager().measurements.listen(
-///    (measurement) => print(measurement),
-/// );
-/// ```
+///     executor.data.forEach(print);
+///
 abstract class Executor<TConfig> {
   /// The deployment that this executor is part of executing.
   SmartphoneDeployment? get deployment;
 
-  /// The configuration of this executor as set in [initialize].
+  /// The configuration of this executor as set when [initialize]d.
   TConfig? get configuration;
 
   /// The runtime state of this executor.
   ExecutorState get state;
 
+  /// Is this executor in the process of being started?
+  ///
+  /// This is true while the [start] method is executing.
+  bool get isStarting;
+
   /// The runtime state changes of this executor.
   Stream<ExecutorState> get stateEvents;
-
-  /// The runtime sampling state of this executor.
-  SamplingState get samplingState;
 
   /// The stream of [Measurement] collected by this executor.
   Stream<Measurement> get measurements;
 
-  /// Configure and initialize the executor before using it.
+  /// Configure and initialize the executor before starting it.
   void initialize(TConfig configuration, [SmartphoneDeployment? deployment]);
 
-  /// Resume the executor.
-  void resume();
+  /// Start the executor.
+  void start();
 
-  /// Pause the executor. Paused until [resume] is called.
-  void pause();
+  /// Restart the executor.
+  ///
+  /// This forces the executor to reload its [configuration] and initialize sampling
+  /// accordingly. Any changes to the configuration must be specified via the
+  /// [initialize] method before calling restart.
+  ///
+  /// Only executors that has been started (i.e. in state [ExecutorState.started])
+  /// or stopped (state [ExecutorState.stopped]) can be restarted.
+  ///
+  /// Calling restart automatically starts the executor if it can be restarted.
+  void restart();
 
-  /// Pause the executor but mark it to be resumed when possible.
-  void pauseButShouldBeResumed();
+  /// Stop the executor. Stopped until [start] or [restart] is called.
+  void stop();
 
   /// Dispose of this executor.
   ///
-  /// If not already paused, [pause] will be called first.
+  /// Is not stopped, [stop] will be called first.
   ///
   /// Once disposed, the executor cannot be used anymore and nothing will happen
   /// if any of the life cycle methods are called.
@@ -135,11 +126,7 @@ abstract class AbstractExecutor<TConfig> implements Executor<TConfig> {
   late _ExecutorStateMachine _stateMachine;
   SmartphoneDeployment? _deployment;
   TConfig? _configuration;
-
-  /// Internal flag to indicate that the executor is in the process of resuming.
-  /// This is used to avoid a [TaskControlExecutor] from trying to resume its
-  /// [TriggerExecutor] multiple times.
-  bool _isResuming = false;
+  bool _isStarting = false;
 
   @override
   SmartphoneDeployment? get deployment => _deployment;
@@ -148,8 +135,7 @@ abstract class AbstractExecutor<TConfig> implements Executor<TConfig> {
   TConfig? get configuration => _configuration;
 
   @override
-  Stream<ExecutorState> get stateEvents =>
-      _stateEventController.stream.distinct();
+  Stream<ExecutorState> get stateEvents => _stateEventController.stream;
 
   @override
   Stream<Measurement> get measurements => _measurementsController.stream;
@@ -158,7 +144,7 @@ abstract class AbstractExecutor<TConfig> implements Executor<TConfig> {
   ExecutorState get state => _stateMachine.state;
 
   @override
-  SamplingState get samplingState => SamplingState(state);
+  bool get isStarting => _isStarting;
 
   AbstractExecutor() {
     _stateMachine = _CreatedState(this);
@@ -174,10 +160,8 @@ abstract class AbstractExecutor<TConfig> implements Executor<TConfig> {
       _measurementsController.add(measurement);
 
   /// Add [error] to the [measurements] stream.
-  void addError(Object error, [StackTrace? stacktrace]) {
-    warning('$error');
-    _measurementsController.addError(error, stacktrace);
-  }
+  void addError(Object error, [StackTrace? stacktrace]) =>
+      _measurementsController.addError(error, stacktrace);
 
   @override
   @nonVirtual
@@ -185,65 +169,36 @@ abstract class AbstractExecutor<TConfig> implements Executor<TConfig> {
     info('Initializing $this [$hashCode] - $configuration');
     _deployment = deployment;
     _configuration = configuration;
-
-    try {
-      _stateMachine.initialize();
-    } catch (error) {
-      addError('Error initializing $this: $error');
-      _setState(_UndefinedState(this));
-    }
+    _stateMachine.initialize();
   }
 
   @override
   @nonVirtual
-  void resume() {
-    _isResuming = true;
-    info('Resuming $this - $configuration');
-
-    try {
-      _stateMachine.resume();
-    } catch (error) {
-      addError('Error resuming $this: $error');
-      _setState(_UndefinedState(this));
-    }
+  void start() {
+    _isStarting = true;
+    info('Starting $this - $configuration');
+    _stateMachine.start();
   }
 
   @override
   @nonVirtual
-  void pause() {
-    info('Pausing $this - $configuration');
-
-    try {
-      _stateMachine.pause();
-    } catch (error) {
-      addError('Error pausing $this: $error');
-      _setState(_UndefinedState(this));
-    }
+  void restart() {
+    info('Restarting $this - $configuration');
+    _stateMachine.restart();
   }
 
   @override
   @nonVirtual
-  void pauseButShouldBeResumed() {
-    info('Paused (but should be resumed) $this - $configuration');
-    try {
-      _stateMachine.pausedButShouldBeResumed();
-    } catch (error) {
-      addError('Error pausing but should be resumed $this: $error');
-      _setState(_UndefinedState(this));
-    }
+  void stop() {
+    info('Stopping $this - $configuration');
+    _stateMachine.stop();
   }
 
   @override
   @nonVirtual
   void dispose() {
     info('Disposing $this - $configuration');
-
-    try {
-      _stateMachine.dispose();
-    } catch (error) {
-      addError('Error disposing $this: $error');
-      _setState(_UndefinedState(this));
-    }
+    _stateMachine.dispose();
   }
 
   void error() => _stateMachine.error();
@@ -256,15 +211,23 @@ abstract class AbstractExecutor<TConfig> implements Executor<TConfig> {
   @protected
   bool onInitialize();
 
-  /// Callback when this executor is resumed.
-  /// Returns true if successfully resumed, false otherwise.
+  /// Callback when this executor is started.
+  /// Returns true if successfully started, false otherwise.
   @protected
-  Future<bool> onResume();
+  Future<bool> onStart();
 
-  /// Callback when this executor is paused.
-  /// Returns true if successfully paused, false otherwise.
+  /// Callback when this executor is to be restarted.
+  /// Returns true if the executor is ready to restart (default), false otherwise.
+  ///
+  /// Subclasses should override this, to implement any configuration to be
+  /// done before restarting.
   @protected
-  Future<bool> onPause();
+  Future<bool> onRestart() async => true;
+
+  /// Callback when this executor is stopped.
+  /// Returns true if successfully stopped, false otherwise.
+  @protected
+  Future<bool> onStop();
 
   /// Callback when this executor is disposed.
   ///
@@ -282,11 +245,10 @@ abstract class AbstractExecutor<TConfig> implements Executor<TConfig> {
 ///
 /// See [SmartphoneDeploymentExecutor] and [TaskExecutor] for examples.
 abstract class AggregateExecutor<TConfig> extends AbstractExecutor<TConfig> {
-  static final DeviceInfoService deviceInfo = DeviceInfoService();
+  static final DeviceInfo deviceInfo = DeviceInfo();
   final StreamGroup<Measurement> _group = StreamGroup.broadcast();
   final Set<Executor<dynamic>> _executors = {};
 
-  /// The set of underlying executors that this aggregate executor is managing.
   Set<Executor<dynamic>> get executors => _executors;
 
   AggregateExecutor() : super() {
@@ -310,17 +272,25 @@ abstract class AggregateExecutor<TConfig> extends AbstractExecutor<TConfig> {
   }
 
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     for (var executor in _executors) {
-      executor.resume();
+      executor.start();
     }
     return true;
   }
 
   @override
-  Future<bool> onPause() async {
+  Future<bool> onRestart() async {
     for (var executor in _executors) {
-      executor.pause();
+      executor.restart();
+    }
+    return true;
+  }
+
+  @override
+  Future<bool> onStop() async {
+    for (var executor in _executors) {
+      executor.stop();
     }
     return true;
   }
@@ -341,9 +311,9 @@ abstract class _ExecutorStateMachine {
   ExecutorState get state;
 
   void initialize();
-  void resume();
-  void pause();
-  void pausedButShouldBeResumed();
+  void start();
+  void restart();
+  void stop();
   void dispose();
   void error();
 }
@@ -358,24 +328,20 @@ abstract class _AbstractExecutorState implements _ExecutorStateMachine {
 
   @override
   void initialize() => _printWarning('initialize');
-
   @override
-  void resume() => _printWarning('resume');
-
+  void start() => _printWarning('start');
   @override
-  void pause() => _printWarning('pause');
-
+  void restart() => _printWarning('restart');
   @override
-  void pausedButShouldBeResumed() => _printWarning('pausedButShouldBeResumed');
+  void stop() => _printWarning('stop');
 
   // Default dispose behavior. A Executor can be disposed in all states.
   @override
   void dispose() {
-    if (state == ExecutorState.Resumed) {
+    if (state == ExecutorState.started) {
       warning(
-        "Trying to dispose a ${executor.runtimeType} in a 'resumed' state."
-        "Consider pausing it first.",
-      );
+          "Trying to dispose a ${executor.runtimeType} in a 'started' state."
+          "Consider stopping it first.");
     }
     executor.onDispose().then((_) {
       executor._setState(_DisposedState(executor));
@@ -390,12 +356,25 @@ abstract class _AbstractExecutorState implements _ExecutorStateMachine {
     executor._setState(_UndefinedState(executor));
   }
 
-  // Print default warning if calling an operation in a wrong state.
+  /// Internal helper function to start the executor.
+  /// Used below for both start and restart.
+  void _start() {
+    executor.onStart().then((started) {
+      if (started) {
+        executor._setState(_StartedState(executor));
+      } else {
+        // if we can't start the executor, the put it in stopped state
+        executor._setState(_StoppedState(executor));
+      }
+      executor._isStarting = false;
+    });
+  }
+
+  /// Print default warning if calling an operation in a wrong state.
   void _printWarning(String operation) => warning(
-    "Trying to $operation a ${executor.runtimeType}[${executor.hashCode}] "
-    "in a state where this cannot be done - state: '${state.name}'. "
-    'Ignoring this.',
-  );
+      "Trying to $operation a ${executor.runtimeType}[${executor.hashCode}] "
+      "in a state where this cannot be done - state: '${state.name}'. "
+      'Ignoring this.');
 
   @override
   String toString() => state.name;
@@ -404,10 +383,10 @@ abstract class _AbstractExecutorState implements _ExecutorStateMachine {
 class _CreatedState extends _AbstractExecutorState
     implements _ExecutorStateMachine {
   _CreatedState(Executor<dynamic> executor)
-    : super(executor as AbstractExecutor);
+      : super(executor as AbstractExecutor);
 
   @override
-  ExecutorState get state => ExecutorState.Created;
+  ExecutorState get state => ExecutorState.created;
 
   @override
   void initialize() {
@@ -422,94 +401,76 @@ class _CreatedState extends _AbstractExecutorState
   }
 }
 
-/// Any state that can be resumed - initialized, resumed, paused states.
-abstract class _ResumableState extends _AbstractExecutorState
-    implements _ExecutorStateMachine {
-  _ResumableState(Executor<dynamic> executor)
-    : super(executor as AbstractExecutor);
-
-  @override
-  void resume() {
-    executor.onResume().then((resumed) {
-      executor._setState(
-        resumed
-            ? _ResumedState(executor)
-            : _PausedButShouldBeResumedState(executor),
-      );
-      executor._isResuming = false;
-    });
-  }
-
-  @override
-  void pausedButShouldBeResumed() {
-    executor.onPause().then((paused) {
-      if (paused) executor._setState(_PausedButShouldBeResumedState(executor));
-    });
-  }
-}
-
-class _InitializedState extends _ResumableState
+class _InitializedState extends _AbstractExecutorState
     implements _ExecutorStateMachine {
   _InitializedState(Executor<dynamic> executor)
-    : super(executor as AbstractExecutor);
+      : super(executor as AbstractExecutor);
 
   @override
-  ExecutorState get state => ExecutorState.Initialized;
+  ExecutorState get state => ExecutorState.initialized;
 
   @override
-  void pause() {
-    executor.onPause().then((paused) {
-      if (paused) executor._setState(_PausedState(executor));
+  void start() => _start();
+}
+
+class _StartedState extends _AbstractExecutorState {
+  _StartedState(Executor<dynamic> executor)
+      : super(executor as AbstractExecutor);
+
+  @override
+  ExecutorState get state => ExecutorState.started;
+
+  @override
+  void restart() {
+    executor.onRestart().then((restarted) {
+      if (restarted) _start();
+    });
+  }
+
+  @override
+  void stop() {
+    executor.onStop().then((stopped) {
+      if (stopped) executor._setState(_StoppedState(executor));
     });
   }
 }
 
-class _ResumedState extends _ResumableState implements _ExecutorStateMachine {
-  _ResumedState(Executor<dynamic> executor)
-    : super(executor as AbstractExecutor);
+class _StoppedState extends _AbstractExecutorState {
+  _StoppedState(Executor<dynamic> executor)
+      : super(executor as AbstractExecutor);
 
   @override
-  ExecutorState get state => ExecutorState.Resumed;
+  ExecutorState get state => ExecutorState.stopped;
 
   @override
-  void pause() {
-    executor.onPause().then((paused) {
-      if (paused) executor._setState(_PausedState(executor));
+  void start() {
+    executor.onStart().then((started) {
+      if (started) executor._setState(_StartedState(executor));
+      executor._isStarting = false;
     });
   }
-}
-
-class _PausedState extends _ResumedState implements _ExecutorStateMachine {
-  _PausedState(Executor<dynamic> executor)
-    : super(executor as AbstractExecutor);
 
   @override
-  ExecutorState get state => ExecutorState.Paused;
-}
-
-class _PausedButShouldBeResumedState extends _ResumedState
-    implements _ExecutorStateMachine {
-  _PausedButShouldBeResumedState(Executor<dynamic> executor)
-    : super(executor as AbstractExecutor);
-
-  @override
-  ExecutorState get state => ExecutorState.PausedButShouldBeResumed;
+  void restart() {
+    executor.onRestart().then((restarted) {
+      // if we can restart, then just start the executor
+      if (restarted) executor.start();
+    });
+  }
 }
 
 class _DisposedState extends _AbstractExecutorState
     implements _ExecutorStateMachine {
   _DisposedState(Executor<dynamic> executor)
-    : super(executor as AbstractExecutor);
-
+      : super(executor as AbstractExecutor);
   @override
-  ExecutorState get state => ExecutorState.Disposed;
+  ExecutorState get state => ExecutorState.disposed;
 }
 
 class _UndefinedState extends _AbstractExecutorState
     implements _ExecutorStateMachine {
   _UndefinedState(Executor<dynamic> executor)
-    : super(executor as AbstractExecutor);
-
+      : super(executor as AbstractExecutor);
   @override
-  ExecutorState get state => ExecutorState.Undefined;
+  ExecutorState get state => ExecutorState.undefined;
 }

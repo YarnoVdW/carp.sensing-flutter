@@ -11,25 +11,20 @@ part of '../connectivity.dart';
 /// collect a [Connectivity] data point every time the connectivity state changes.
 class ConnectivityProbe extends StreamProbe {
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     // collect the current connectivity status on sampling start
-    var connectivityStatus = await connectivity.Connectivity()
-        .checkConnectivity();
-    addMeasurement(
-      Measurement.fromData(
-        Connectivity.fromConnectivityResult(connectivityStatus),
-      ),
-    );
+    var connectivityStatus =
+        await connectivity.Connectivity().checkConnectivity();
+    addMeasurement(Measurement.fromData(
+        Connectivity.fromConnectivityResult(connectivityStatus)));
 
-    return super.onResume();
+    return super.onStart();
   }
 
   @override
   Stream<Measurement> get stream =>
-      connectivity.Connectivity().onConnectivityChanged.map(
-        (event) =>
-            Measurement.fromData(Connectivity.fromConnectivityResult(event)),
-      );
+      connectivity.Connectivity().onConnectivityChanged.map((event) =>
+          Measurement.fromData(Connectivity.fromConnectivityResult(event)));
 }
 
 // This probe requests access to location permissions (both on Android and iOS).
@@ -62,8 +57,8 @@ class WifiProbe extends IntervalProbe {
 /// The [BluetoothProbe] scans for nearby and visible Bluetooth devices and
 /// collects a [Bluetooth] measurement that lists each device found during the scan.
 ///
-/// Uses a [PeriodicSamplingConfiguration] for configuration the interval
-/// and duration of the scan. Can also be configured to filter by
+/// Uses a [PeriodicSamplingConfiguration] for configuration the [interval]
+/// and [duration] of the scan. Can also be configured to filter by
 /// [services] and [remoteIds] by using a [BluetoothScanPeriodicSamplingConfiguration].
 class BluetoothProbe extends BufferingPeriodicStreamProbe {
   /// Default timeout for bluetooth scan - 4 secs
@@ -80,18 +75,18 @@ class BluetoothProbe extends BufferingPeriodicStreamProbe {
   // if a BT-specific sampling configuration is used, we need to
   // extract the services and remoteIds from it so FlutterBluePlus can
   // perform filtered scanning
-  List<Guid> get services =>
-      (samplingConfiguration is BluetoothScanPeriodicSamplingConfiguration)
+  List<Guid> get services => (samplingConfiguration
+          is BluetoothScanPeriodicSamplingConfiguration)
       ? (samplingConfiguration as BluetoothScanPeriodicSamplingConfiguration)
-            .withServices
-            .map((e) => Guid(e))
-            .toList()
+          .withServices
+          .map((e) => Guid(e))
+          .toList()
       : [];
 
-  List<String> get remoteIds =>
-      (samplingConfiguration is BluetoothScanPeriodicSamplingConfiguration)
+  List<String> get remoteIds => (samplingConfiguration
+          is BluetoothScanPeriodicSamplingConfiguration)
       ? (samplingConfiguration as BluetoothScanPeriodicSamplingConfiguration)
-            .withRemoteIds
+          .withRemoteIds
       : [];
 
   @override
@@ -102,8 +97,7 @@ class BluetoothProbe extends BufferingPeriodicStreamProbe {
       FlutterBluePlus.startScan(
         withServices: services,
         withRemoteIds: remoteIds,
-        timeout:
-            samplingConfiguration?.duration ??
+        timeout: samplingConfiguration?.duration ??
             const Duration(milliseconds: DEFAULT_TIMEOUT),
       );
     } catch (error) {
@@ -128,7 +122,7 @@ class BluetoothProbe extends BufferingPeriodicStreamProbe {
 }
 
 /// A Probe that constantly scans for nearby and visible iBeacon devices and collects a
-/// [Beacon] measurement that lists each [BeaconDevice] found during the scan.
+/// [BeaconData] measurement that lists each [BeaconDevice] found during the scan.
 ///
 /// Uses a [BeaconRangingPeriodicSamplingConfiguration] for configuration the
 /// [beaconRegions] to include and the [beaconDistance].
@@ -153,23 +147,19 @@ class BeaconProbe extends StreamProbe {
     super.onInitialize();
     if (beaconRegions.isEmpty) {
       warning(
-        '$runtimeType - No beacon regions specified for monitoring. Will not start monitoring.',
-      );
+          '$runtimeType - No beacon regions specified for monitoring. Will not start monitoring.');
       return false;
     }
 
     try {
       info('$runtimeType - Initializing iBeacon scanning...');
-      flutterBeacon.initializeScanning.then(
-        (_) {
-          info('$runtimeType - Initialized.');
-          return true;
-        },
-        onError: (Object error) {
-          warning('$runtimeType - Error while initializing scanner - $error');
-          return false;
-        },
-      );
+      flutterBeacon.initializeScanning.then((_) {
+        info('$runtimeType - Initialized.');
+        return true;
+      }, onError: (Object error) {
+        warning('$runtimeType - Error while initializing scanner - $error');
+        return false;
+      });
     } catch (error) {
       warning('$runtimeType - Error while initializing scanner - $error');
       return false;
@@ -179,13 +169,11 @@ class BeaconProbe extends StreamProbe {
 
   @override
   Stream<Measurement> get stream async* {
-    await for (final monitoringResult in flutterBeacon.monitoring(
-      beaconRegions,
-    )) {
+    await for (final monitoringResult
+        in flutterBeacon.monitoring(beaconRegions)) {
       if (monitoringResult.monitoringState == MonitoringState.inside) {
         debug(
-          '$runtimeType - Entered region: ${monitoringResult.region.identifier}',
-        );
+            '$runtimeType - Entered region: ${monitoringResult.region.identifier}');
 
         await for (final rangingResult
             in flutterBeacon.ranging(beaconRegions)) {

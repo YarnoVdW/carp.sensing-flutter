@@ -38,7 +38,7 @@ void main() {
       debugPrint('CarpService : ${CarpService().app}');
       debugPrint(" - signed in as: $user");
 
-      // debugPrint('${CarpAuthService().manager?.discoveryDocument}');
+      debugPrint('${CarpAuthService().manager?.discoveryDocument}');
     }, skip: false);
 
     test('- device ID', () async {
@@ -48,7 +48,7 @@ void main() {
   });
 
   group("Deployment - using DeploymentReference", () {
-    test('- get status', () async {
+    test('- get deployment status', () async {
       final status = await CarpDeploymentService().deployment().getStatus();
       debugPrint(toJsonString(status));
       expect(status.studyDeploymentId, testDeploymentId);
@@ -59,37 +59,26 @@ void main() {
       var status = await reference.getStatus();
       debugPrint('$status');
 
-      expect(status.deviceStatusList.length, isNot(0));
-
-      try {
-        var newStatus = await reference.registerDevice();
-        debugPrint('$newStatus');
-        expect(newStatus.studyDeploymentId, testDeploymentId);
-      } catch (error) {
-        debugPrint('Error registering device: $error');
-
-        // if device is already registered, CAWS returns a 400 Bad Request
-        expect(error, isA<CarpBadRequestException>());
-        expect(
-          (error as CarpBadRequestException).message,
-          startsWith('The passed device is already registered'),
-        );
-      }
+      expect(status.primaryDeviceStatus!.device, isNotNull);
+      debugPrint('${status.primaryDeviceStatus!.device}');
+      var newStatus = await reference.registerPrimaryDevice();
+      debugPrint('$newStatus');
+      expect(newStatus.studyDeploymentId, testDeploymentId);
     }, skip: false);
 
     test('- get primary device deployment', () async {
       final reference = CarpDeploymentService().deployment();
       final status = await reference.getStatus();
       debugPrint('$status');
-
-      expect(status.deviceStatusList.length, isNot(0));
+      expect(status.primaryDeviceStatus!.device, isNotNull);
+      debugPrint('${status.primaryDeviceStatus!.device}');
 
       PrimaryDeviceDeployment deployment = await reference.get();
       debugPrint(toJsonString(deployment));
       expect(deployment.registration.deviceId, isNotNull);
     }, skip: false);
 
-    test('- deployed', () async {
+    test('- deployment success', () async {
       final reference = CarpDeploymentService().deployment();
       final status_1 = await reference.getStatus();
       debugPrint(toJsonString(status_1));
@@ -106,17 +95,17 @@ void main() {
       final reference = CarpDeploymentService().deployment();
       var status = await reference.getStatus();
       debugPrint('$status');
-
-      expect(status.deviceStatusList.length, isNot(0));
-      status = await reference.unRegisterDevice();
+      expect(status.primaryDeviceStatus!.device, isNotNull);
+      debugPrint('${status.primaryDeviceStatus!.device}');
+      status = await reference.unRegisterDevice(
+          deviceRoleName: status.primaryDeviceStatus!.device.roleName);
       debugPrint('$status');
-
       expect(status.studyDeploymentId, testDeploymentId);
     }, skip: false);
   }, skip: true);
 
   group("Deployment - using CarpDeploymentService", () {
-    test('- get status', () async {
+    test('- get deployment status', () async {
       StudyDeploymentStatus status = await CarpDeploymentService()
           .getStudyDeploymentStatus(testDeploymentId);
       debugPrint(toJsonString(status.toJson()));
@@ -127,57 +116,30 @@ void main() {
     }, skip: false);
 
     test('- register device', () async {
-      try {
-        var status = await CarpDeploymentService().registerDevice(
+      StudyDeploymentStatus status = await CarpDeploymentService()
+          .getStudyDeploymentStatus(testDeploymentId);
+      debugPrint('$status');
+      expect(status.primaryDeviceStatus!.device, isNotNull);
+      debugPrint('{$status.primaryDeviceStatus?.device}');
+      status = await CarpDeploymentService().registerDevice(
           testDeploymentId,
-          testPhoneRoleName,
-          DefaultDeviceRegistration(deviceDisplayName: 'Samsung A10'),
-        );
-        debugPrint('$status');
-        expect(status.studyDeploymentId, testDeploymentId);
-      } catch (error) {
-        debugPrint('Error registering device: $error');
-
-        // if device is already registered, CAWS returns a 400 Bad Request
-        expect(error, isA<CarpBadRequestException>());
-        expect(
-          (error as CarpBadRequestException).message,
-          startsWith('The passed device is already registered'),
-        );
-      }
-    }, skip: false);
-
-    test('- register WRONG device', () async {
-      try {
-        await CarpDeploymentService().registerDevice(
-          testDeploymentId,
-          "WRONG Phone",
-          DefaultDeviceRegistration(deviceDisplayName: 'Samsung A10'),
-        );
-      } catch (error) {
-        // if a wrong device role name is used, CAWS returns a 400 Bad Request
-        expect(error, isA<CarpBadRequestException>());
-        expect(
-          (error as CarpBadRequestException).message,
-          startsWith(
-            "A device with the role name 'WRONG Phone' could not be found in the study deployment",
-          ),
-        );
-      }
+          status.primaryDeviceStatus!.device.roleName,
+          DefaultDeviceRegistration(deviceDisplayName: 'Samsung A10'));
+      debugPrint('$status');
+      expect(status.studyDeploymentId, testDeploymentId);
     }, skip: false);
 
     test('- get primary device deployment', () async {
       StudyDeploymentStatus status = await CarpDeploymentService()
           .getStudyDeploymentStatus(testDeploymentId);
       debugPrint('$status');
-      expect(status.deviceStatusList.length, isNot(0));
-      debugPrint('${status.deviceStatusList.first.device}');
-
-      PrimaryDeviceDeployment deployment = await CarpDeploymentService()
-          .getDeviceDeploymentFor(
-            testDeploymentId,
-            status.deviceStatusList.first.device.roleName,
-          );
+      expect(status.primaryDeviceStatus!.device, isNotNull);
+      debugPrint('${status.primaryDeviceStatus!.device}');
+      PrimaryDeviceDeployment deployment =
+          await CarpDeploymentService().getDeviceDeploymentFor(
+        testDeploymentId,
+        status.primaryDeviceStatus!.device.roleName,
+      );
       debugPrint('$deployment');
       for (var task in deployment.tasks) {
         debugPrint('$task');
@@ -186,25 +148,25 @@ void main() {
       expect(deployment.registration.deviceId, isNotNull);
     }, skip: false);
 
-    test('- deployed', () async {
+    test('- device deployed', () async {
       StudyDeploymentStatus status_1 = await CarpDeploymentService()
           .getStudyDeploymentStatus(testDeploymentId);
       debugPrint('$status_1');
-      expect(status_1.deviceStatusList.length, isNot(0));
-      debugPrint('${status_1.deviceStatusList.first.device}');
-      PrimaryDeviceDeployment deployment = await CarpDeploymentService()
-          .getDeviceDeploymentFor(
-            testDeploymentId,
-            status_1.deviceStatusList.first.device.roleName,
-          );
+      expect(status_1.primaryDeviceStatus!.device, isNotNull);
+      debugPrint('${status_1.primaryDeviceStatus!.device}');
+      PrimaryDeviceDeployment deployment =
+          await CarpDeploymentService().getDeviceDeploymentFor(
+        testDeploymentId,
+        status_1.primaryDeviceStatus!.device.roleName,
+      );
       debugPrint('$deployment');
 
-      StudyDeploymentStatus status_2 = await CarpDeploymentService()
-          .deviceDeployed(
-            testDeploymentId,
-            status_1.deviceStatusList.first.device.roleName,
-            deployment.lastUpdatedOn,
-          );
+      StudyDeploymentStatus status_2 =
+          await CarpDeploymentService().deviceDeployed(
+        testDeploymentId,
+        status_1.primaryDeviceStatus!.device.roleName,
+        deployment.lastUpdatedOn,
+      );
       debugPrint('$status_2');
       expect(status_1.studyDeploymentId, status_2.studyDeploymentId);
       expect(status_2.studyDeploymentId, testDeploymentId);
@@ -214,12 +176,10 @@ void main() {
       StudyDeploymentStatus status = await CarpDeploymentService()
           .getStudyDeploymentStatus(testDeploymentId);
       debugPrint('$status');
-      expect(status.deviceStatusList.length, isNot(0));
-      debugPrint('{$status.deviceStatusList.first.device}');
+      expect(status.primaryDeviceStatus!.device, isNotNull);
+      debugPrint('{$status.primaryDeviceStatus?.device}');
       status = await CarpDeploymentService().unregisterDevice(
-        testDeploymentId,
-        status.deviceStatusList.first.device.roleName,
-      );
+          testDeploymentId, status.primaryDeviceStatus!.device.roleName);
       debugPrint('$status');
       expect(status.studyDeploymentId, testDeploymentId);
     }, skip: false);

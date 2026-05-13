@@ -26,6 +26,9 @@ abstract class RPCCarpReference extends CarpReference {
   String get rpcEndpointUri;
 
   /// A generic RPC request to the CARP service.
-  Future<dynamic> _rpc(ServiceRequest request, [String? endpointName]) async =>
+  Future<Map<String, dynamic>> _rpc(
+    ServiceRequest request, [
+    String? endpointName,
+  ]) async =>
       await service._rpc(request, endpointName);
 }

@@ -18,7 +18,10 @@ class CarpApp {
   ///
   /// [name] and [uri] are required parameters in order to identify and
   /// know the CAWS endpoint URI.
-  CarpApp({required this.name, required this.uri});
+  CarpApp({
+    required this.name,
+    required this.uri,
+  });
 
   @override
   int get hashCode => (name + uri.toString()).hashCode;

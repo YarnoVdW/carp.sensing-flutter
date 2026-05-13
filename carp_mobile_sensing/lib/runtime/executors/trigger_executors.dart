@@ -7,10 +7,13 @@
 
 part of '../../runtime.dart';
 
-/// An event streamed from a [TriggerExecutor] when it triggers.
 class TriggerEvent {
   // TriggerConfiguration? trigger;
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// TRIGGER EXECUTORS
+// ---------------------------------------------------------------------------------------------------------
 
 /// Responsible for handling the execution of a trigger.
 ///
@@ -25,7 +28,6 @@ abstract class TriggerExecutor<TConfig extends TriggerConfiguration>
   Stream<TriggerEvent> get triggerEvents => _controller.stream;
 
   /// A lot of trigger executors use a timer, so we declare one here
-  /// to be used by all trigger implementations.
   Timer? timer;
 
   @override
@@ -38,11 +40,15 @@ abstract class TriggerExecutor<TConfig extends TriggerConfiguration>
   bool onInitialize() => true;
 
   @override
-  Future<bool> onResume() async => true;
+  Future<bool> onStart() async => true;
 
   @override
   @mustCallSuper
-  Future<bool> onPause() async {
+  Future<bool> onRestart() async => await onStop();
+
+  @override
+  @mustCallSuper
+  Future<bool> onStop() async {
     timer?.cancel();
     return true;
   }
@@ -69,7 +75,7 @@ class NoOpTriggerExecutor extends TriggerExecutor<TriggerConfiguration> {}
 /// Executes an [ImmediateTrigger], i.e. starts sampling immediately.
 class ImmediateTriggerExecutor extends TriggerExecutor<TriggerConfiguration> {
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     onTrigger();
     return true;
   }
@@ -79,19 +85,14 @@ class ImmediateTriggerExecutor extends TriggerExecutor<TriggerConfiguration> {
 /// study deployment.
 class OneTimeTriggerExecutor extends TriggerExecutor<OneTimeTrigger> {
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     if (!configuration!.hasBeenTriggered) {
-      // Note that the trigger stamp is saved in the deployment configuration.
-      // By called 'hasBeenUpdated', the deployment is marked as updated and
-      // persisted with the new trigger timestamp.
       configuration!.triggerTimestamp = DateTime.now();
-      deployment?.hasBeenUpdated();
       onTrigger();
     } else {
       warning(
-        "$runtimeType - one time trigger already occurred at: ${configuration?.triggerTimestamp}. "
-        'Will not trigger now.',
-      );
+          "$runtimeType - one time trigger already occurred at: ${configuration?.triggerTimestamp}. "
+          'Will not trigger now.');
       return false;
     }
     return true;
@@ -107,10 +108,8 @@ class PassiveTriggerExecutor extends TriggerExecutor<PassiveTrigger> {
   // Forward to the embedded trigger executor
   @override
   bool onInitialize() {
-    configuration!.executor.initialize(
-      configuration as TriggerConfiguration,
-      deployment!,
-    );
+    configuration!.executor
+        .initialize(configuration as TriggerConfiguration, deployment!);
     return true;
   }
 }
@@ -118,7 +117,7 @@ class PassiveTriggerExecutor extends TriggerExecutor<PassiveTrigger> {
 /// Executes a [DelayedTrigger], i.e. triggers after the specified delay.
 class DelayedTriggerExecutor extends TriggerExecutor<DelayedTrigger> {
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     timer = Timer(configuration!.delay, () => onTrigger());
     return true;
   }
@@ -132,37 +131,33 @@ class ElapsedTimeTriggerExecutor
   List<DateTime> getSchedule(DateTime from, DateTime to, [int? max]) {
     if (deployment?.deployed == null) return [];
     if (configuration?.elapsedTime == null) return [];
-    final dd = deployment!.deployed.add(configuration!.elapsedTime!).toLocal();
+    final dd = deployment!.deployed!.add(configuration!.elapsedTime!);
     return (dd.isAfter(from) && dd.isBefore(to)) ? [dd] : [];
   }
 
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     if (deployment?.deployed == null) {
       warning(
-        '$runtimeType - This deployment does not have a start time. Cannot execute this trigger.',
-      );
+          '$runtimeType - This deployment does not have a start time. Cannot execute this trigger.');
       return false;
     }
 
     if (configuration?.elapsedTime == null) {
       warning(
-        '$runtimeType - This ElapsedTimeTrigger does not have a elapsedTime specified. Cannot execute this trigger.',
-      );
+          '$runtimeType - This ElapsedTimeTrigger does not have a elapsedTime specified. Cannot execute this trigger.');
       return false;
     }
 
-    int delay =
-        configuration!.elapsedTime!.inMilliseconds -
+    int delay = configuration!.elapsedTime!.inMilliseconds -
         (DateTime.now().millisecondsSinceEpoch -
-            (deployment?.deployed.millisecondsSinceEpoch ?? 0));
+            deployment!.deployed!.millisecondsSinceEpoch);
 
     if (delay > 0) {
       timer = Timer(Duration(milliseconds: delay), () => onTrigger());
     } else {
       warning(
-        '$runtimeType - the trigger time is in the past and should have happened already.',
-      );
+          '$runtimeType - the trigger time is in the past and should have happened already.');
       return false;
     }
 
@@ -189,7 +184,7 @@ class PeriodicTriggerExecutor
   }
 
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     timer = Timer.periodic(configuration!.period, (_) => onTrigger());
     return true;
   }
@@ -201,12 +196,12 @@ class DateTimeTriggerExecutor
   @override
   List<DateTime> getSchedule(DateTime from, DateTime to, [int? max]) =>
       (configuration!.schedule.isAfter(from) &&
-          configuration!.schedule.isBefore(to))
-      ? [configuration!.schedule]
-      : [];
+              configuration!.schedule.isBefore(to))
+          ? [configuration!.schedule]
+          : [];
 
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     if (configuration!.schedule.isAfter(DateTime.now())) {
       warning('The schedule of the DateTimeTrigger cannot be in the past.');
       return false;
@@ -237,7 +232,7 @@ class RecurrentScheduledTriggerExecutor
   }
 
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     Duration delay = configuration!.firstOccurrence.difference(DateTime.now());
     if (configuration!.end == null ||
         configuration!.end!.isAfter(DateTime.now())) {
@@ -260,10 +255,9 @@ class CronScheduledTriggerExecutor
   @override
   List<DateTime> getSchedule(DateTime from, DateTime to, [int max = 100]) {
     var cronIterator = Cron().parse(
-      configuration!.cronExpression,
-      Settings().timezone,
-      tz.TZDateTime.from(from, tz.getLocation(Settings().timezone)),
-    );
+        configuration!.cronExpression,
+        Settings().timezone,
+        tz.TZDateTime.from(from, tz.getLocation(Settings().timezone)));
     final List<DateTime> schedule = [];
     int count = 0;
 
@@ -275,7 +269,7 @@ class CronScheduledTriggerExecutor
   }
 
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     debug('creating cron job : $configuration');
     var schedule = cron.Schedule.parse(configuration!.cronExpression);
     _task = _cron.schedule(schedule, () async {
@@ -286,9 +280,9 @@ class CronScheduledTriggerExecutor
   }
 
   @override
-  Future<bool> onPause() async {
+  Future<bool> onStop() async {
     _task?.cancel();
-    return super.onPause();
+    return super.onStop();
   }
 }
 
@@ -299,36 +293,28 @@ class SamplingEventTriggerExecutor
   StreamSubscription<Measurement>? _subscription;
 
   @override
-  Future<bool> onResume() async {
-    // Fast out if no deployment.
-    if (deployment == null) return false;
-
-    SmartphoneStudy? study = SmartPhoneClientManager().getStudy(
-      deployment!.studyDeploymentId,
-      deployment!.deviceRoleName,
-    );
-
+  Future<bool> onStart() async {
     _subscription ??= SmartPhoneClientManager()
-        .getStudyController(study!)
+        .getStudyRuntime(deployment!.studyDeploymentId)
         ?.measurementsByType(configuration!.measureType)
         .distinct()
         .listen((measurement) {
-          if (configuration?.triggerCondition == null) {
-            // always trigger if the condition is null
-            onTrigger();
-          } else
-          // check the trigger condition
-          if (measurement.data.equivalentTo(configuration!.triggerCondition!)) {
-            onTrigger();
-          }
-        });
+      if (configuration?.triggerCondition == null) {
+        // always trigger if the condition is null
+        onTrigger();
+      } else
+      // check the trigger condition
+      if (measurement.data.equivalentTo(configuration!.triggerCondition!)) {
+        onTrigger();
+      }
+    });
     return true;
   }
 
   @override
-  Future<bool> onPause() async {
+  Future<bool> onStop() async {
     _subscription?.cancel();
-    return super.onPause();
+    return super.onStop();
   }
 }
 
@@ -338,31 +324,23 @@ class ConditionalSamplingEventTriggerExecutor
   StreamSubscription<Measurement>? _subscription;
 
   @override
-  Future<bool> onResume() async {
-    // Fast out if no deployment.
-    if (deployment == null) return false;
-
-    SmartphoneStudy? study = SmartPhoneClientManager().getStudy(
-      deployment!.studyDeploymentId,
-      deployment!.deviceRoleName,
-    );
-
+  Future<bool> onStart() async {
     _subscription ??= SmartPhoneClientManager()
-        .getStudyController(study!)
+        .getStudyRuntime(deployment!.studyDeploymentId)
         ?.measurementsByType(configuration!.measureType)
         .listen((measurement) {
-          if (configuration!.triggerCondition != null &&
-              configuration!.triggerCondition!(measurement)) {
-            onTrigger();
-          }
-        });
+      if (configuration!.triggerCondition != null &&
+          configuration!.triggerCondition!(measurement)) {
+        onTrigger();
+      }
+    });
     return true;
   }
 
   @override
-  Future<bool> onPause() async {
+  Future<bool> onStop() async {
     _subscription?.cancel();
-    return super.onPause();
+    return super.onStop();
   }
 }
 
@@ -370,7 +348,7 @@ class ConditionalSamplingEventTriggerExecutor
 class ConditionalPeriodicTriggerExecutor
     extends TriggerExecutor<ConditionalPeriodicTrigger> {
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     // create a recurrent timer that checks the conditions periodically
     timer = Timer.periodic(configuration!.period, (_) {
       if (configuration!.triggerCondition != null &&
@@ -412,8 +390,7 @@ class RandomRecurrentTriggerExecutor
   TimeOfDay get randomTime {
     TimeOfDay randomTime = const TimeOfDay();
     do {
-      int randomHour =
-          startTime.hour +
+      int randomHour = startTime.hour +
           ((endTime.hour - startTime.hour == 0)
               ? 0
               : Random().nextInt(endTime.hour - startTime.hour));
@@ -455,13 +432,7 @@ class RandomRecurrentTriggerExecutor
     while (day.isBefore(toDay) && count < max) {
       for (var time in samplingTimes) {
         final date = DateTime(
-          day.year,
-          day.month,
-          day.day,
-          time.hour,
-          time.minute,
-          time.second,
-        );
+            day.year, day.month, day.day, time.hour, time.minute, time.second);
         if (date.isAfter(from) && date.isBefore(to)) schedule.add(date);
       }
 
@@ -472,14 +443,13 @@ class RandomRecurrentTriggerExecutor
   }
 
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     // sampling might be started after [startTime] or the app wasn't running at [startTime]
     // therefore, first check if the random timers have been scheduled for today
     if (TimeOfDay.now().isAfter(startTime)) {
       if (!hasBeenScheduledForToday) {
         debug(
-          '$runtimeType - timers has not been scheduled for today ($todayString) - scheduling now',
-        );
+            '$runtimeType - timers has not been scheduled for today ($todayString) - scheduling now');
         _scheduleTimers();
       }
     }
@@ -520,11 +490,10 @@ class UserTaskTriggerExecutor extends TriggerExecutor<UserTaskTrigger> {
   StreamSubscription<UserTask>? _subscription;
 
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     // listen for event of the specified type and trigger as needed
-    _subscription ??= AppTaskController().userTaskEvents.listen((
-      userTask,
-    ) async {
+    _subscription ??=
+        AppTaskController().userTaskEvents.listen((userTask) async {
       if (userTask.task.name == configuration!.taskName &&
           userTask.state == configuration!.triggerCondition) {
         onTrigger();
@@ -534,9 +503,9 @@ class UserTaskTriggerExecutor extends TriggerExecutor<UserTaskTrigger> {
   }
 
   @override
-  Future<bool> onPause() async {
+  Future<bool> onStop() async {
     _subscription?.cancel();
-    return super.onPause();
+    return super.onStop();
   }
 }
 
@@ -546,9 +515,10 @@ class NoUserTaskTriggerExecutor extends TriggerExecutor<NoUserTaskTrigger> {
   Timer? _timer;
 
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     _timer = Timer.periodic(Duration(minutes: 1), (_) {
-      if (!AppTaskController().userTaskQueue
+      if (!AppTaskController()
+          .userTaskQueue
           .where((task) => task.state == UserTaskState.enqueued)
           .any((task) => task.name == configuration!.taskName)) {
         onTrigger();
@@ -559,28 +529,8 @@ class NoUserTaskTriggerExecutor extends TriggerExecutor<NoUserTaskTrigger> {
   }
 
   @override
-  Future<bool> onPause() async {
+  Future<bool> onStop() async {
     _timer?.cancel();
-    return super.onPause();
+    return super.onStop();
   }
-}
-
-/// Executes an [AppLifecycleTrigger].
-class AppLifecycleTriggerExecutor extends TriggerExecutor<AppLifecycleTrigger>
-    with WidgetsBindingObserver {
-  @override
-  Future<bool> onResume() async {
-    WidgetsBinding.instance.addObserver(this);
-    return await super.onResume();
-  }
-
-  @override
-  Future<bool> onPause() async {
-    WidgetsBinding.instance.removeObserver(this);
-    return await super.onPause();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) =>
-      (configuration?.states.contains(state) ?? false) ? onTrigger() : null;
 }

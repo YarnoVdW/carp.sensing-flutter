@@ -5,7 +5,7 @@ It contains the source code for CARP first-party (i.e., developed by the core CA
 
 In addition, the CARP team maintains a set of [Flutter plugins](https://github.com/cph-cachet/flutter-plugins) (mainly) for sensing purposes. Flutter plugins enable access to platform-specific APIs. For more information about plugins, and how to use them, see the [Flutter Packages](https://flutter.io/platform-plugins/) description.
 
-All the CARP Flutter components including the plugins are also available on [pub.dev](https://pub.dev/publishers/carp.dk/packages).
+All the CARP Flutter components including the plugins are also available on [pub.dev](https://pub.dev/publishers/cachet.dk/packages).
 
 ## Software Components
 
@@ -33,16 +33,16 @@ These are the available CARP Mobile Sensing Flutter components in this repositor
 | **Backends** | **Backend data upload components** |  |
 | [carp_webservices](./backends/carp_webservices) | Flutter API for CARP Web Services (CAWS) | [![pub package](https://img.shields.io/pub/v/carp_webservices.svg)](https://pub.dartlang.org/packages/carp_webservices) |
 | [carp_backend](./backends/carp_backend) | Data manager for uploading data to a CAWS data backend. | [![pub package](https://img.shields.io/pub/v/carp_backend.svg)](https://pub.dartlang.org/packages/carp_backend) |
-| [carp_firebase_backend](./backends/carp_firebase_backend) | **NOT MAINTAINED ATM** Data manager for uploading data to Firebase as both zipped files and JSON data| [![pub package](https://img.shields.io/pub/v/carp_firebase_backend.svg)](https://pub.dartlang.org/packages/carp_firebase_backend) |
+| [carp_firebase_backend](./backends/carp_firebase_backend) | Data manager for uploading data to Firebase as both zipped files and JSON data| [![pub package](https://img.shields.io/pub/v/carp_firebase_backend.svg)](https://pub.dartlang.org/packages/carp_firebase_backend) |
 | **Utilities** | **Misc. CAMS utilities** |  |
 | [carp_study_generator](./utilities/carp_study_generator) | A simple command line interface (CLI) to upload study protocols, informed consent, and localization files to a CAWS backend.  | [![pub package](https://img.shields.io/pub/v/carp_study_generator.svg)](https://pub.dartlang.org/packages/carp_study_generator) |
 | **Apps** | **Misc. mobile sensing demo apps** |  |
 | [carp_mobile_sensing_app](./apps/carp_mobile_sensing_app) | Demonstrates how basic mobile sensing can be implemented in a Flutter app using CAMS. Also demonstrates how to integrate wearable devices over BLE connections.  |  |
-| [pulmonary_monitor_app](https://github.com/carp-dk/pulmonary_monitor_app) | Demonstrates how user tasks (aka. [AppTask](https://pub.dev/documentation/carp_mobile_sensing/latest/domain/AppTask-class.html)) are supported in CAMS. |  |
+| [pulmonary_monitor_app](https://github.com/cph-cachet/pulmonary_monitor_app) | Demonstrates how user tasks (aka. [AppTask](https://pub.dev/documentation/carp_mobile_sensing/latest/domain/AppTask-class.html)) are supported in CAMS. |  |
 
 ## Documentation
 
-The overall documentation of the software architecture of CARP Mobile Sensing, and how to use and extend it, is available on the [CAMS Documentation site](https://docs.carp.dk/carp-mobile-sensing/). Each of the specific packages also contains more detailed documentation on how each package is used within the framework (e.g., how the [Movesense sampling package](https://pub.dartlang.org/packages/carp_movesense_package) is utilized).
+The overall documentation of the software architecture of CARP Mobile Sensing, and how to use and extend it is available on this GitHub [wiki](https://github.com/cph-cachet/carp.sensing-flutter/wiki). Each of the specific packages also contains more specific documentation on how each package is used in the framework (e.g. how the [Movesense sampling package](https://pub.dartlang.org/packages/carp_movesense_package) is to be used).
 
 ## Issues
 
@@ -50,4 +50,4 @@ Please check existing issues and file any new issues, bugs, or feature requests 
 
 ## Contributing
 
-Contributing is not yet in place. However, if you wish to contribute a change to any of the existing components in this repo, please review our [contribution guide](https://github.com/cph-cachet/carp.sensing/CONTRIBUTING.md), and send a [pull request](https://github.com/cph-cachet/carp.sensing-flutter/pulls).
+Contributing is not entirely in place yet. However, if you wish to contribute a change to any of the existing components in this repo, please review our [contribution guide](https://github.com/cph-cachet/carp.sensing/CONTRIBUTING.md), and send a [pull request](https://github.com/cph-cachet/carp.sensing-flutter/pulls).

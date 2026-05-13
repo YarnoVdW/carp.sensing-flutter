@@ -25,8 +25,8 @@ class CarpDataStreamService extends CarpBaseService
   @override
   Future<void> openDataStreams(DataStreamsConfiguration configuration) async =>
       throw CarpServiceException(
-        'Opening data streams is not supported from the client side.',
-      );
+          message:
+              'Opening data streams is not supported from the client side.');
 
   @override
   Future<void> appendToDataStreams(
@@ -39,12 +39,10 @@ class CarpDataStreamService extends CarpBaseService
     if (compress) {
       // compress the payload and POST the byte stream to the zip endpoint
       _endpointName = DATA_STREAM_ZIP_ENDPOINT_NAME;
-      var response = await _post(
+      await _post(
         Uri.encodeFull(rpcEndpointUri),
         body: zipJson(payload.toJson()),
       );
-      // we do not expect any response content but handle exceptions
-      _handleResponse(response);
     } else {
       await _rpc(payload, DATA_STREAM_ENDPOINT_NAME);
     }
@@ -56,33 +54,33 @@ class CarpDataStreamService extends CarpBaseService
     int fromSequenceId, [
     int? toSequenceIdInclusive,
   ]) async {
-    dynamic responseJson = await _rpc(
-      GetDataStream(dataStream, fromSequenceId, toSequenceIdInclusive),
-    );
+    Map<String, dynamic> responseJson = await _rpc(GetDataStream(
+      dataStream,
+      fromSequenceId,
+      toSequenceIdInclusive,
+    ));
 
-    // we expect a list of DataStreamBatch in the response
-    List<dynamic> batches = responseJson as List<dynamic>;
+    // we expect a list of 'items'
+    List<dynamic> items = responseJson['items'] as List<dynamic>;
 
-    return (batches.isEmpty)
+    return (items.isEmpty)
         ? []
-        : batches
-              .map(
-                (batch) =>
-                    DataStreamBatch.fromJson(batch as Map<String, dynamic>),
-              )
-              .toList();
+        : items
+            .map((item) =>
+                DataStreamBatch.fromJson(item as Map<String, dynamic>))
+            .toList();
   }
 
   @override
   Future<void> closeDataStreams(List<String> studyDeploymentIds) async =>
       throw CarpServiceException(
-        'Closing data streams is not supported from the client side.',
-      );
+          message:
+              'Closing data streams is not supported from the client side.');
 
   @override
   Future<Set<String>> removeDataStreams(
-    List<String> studyDeploymentIds,
-  ) async => throw CarpServiceException(
-    'Removing data streams is not supported from the client side.',
-  );
+          List<String> studyDeploymentIds) async =>
+      throw CarpServiceException(
+          message:
+              'Removing data streams is not supported from the client side.');
 }

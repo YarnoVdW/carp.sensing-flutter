@@ -4,19 +4,21 @@
  * Use of this source code is governed by a MIT-style license that can be
  * found in the LICENSE file.
  */
-part of '../../../common.dart';
+
+part of '../../carp_core_common.dart';
 
 /// A beacon meeting the open AltBeacon standard.
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
 class AltBeacon extends DeviceConfiguration<AltBeaconDeviceRegistration> {
-  AltBeacon({super.roleName = 'Beacon'}) : super(isOptional: true);
+  AltBeacon({
+    super.roleName = 'Beacon',
+  }) : super(isOptional: true);
 
   @override
   DataTypeSamplingSchemeMap? get dataTypeSamplingSchemes =>
       DataTypeSamplingSchemeMap.from([
         DataTypeSamplingScheme(
-          CarpDataTypes().types[CarpDataTypes.SIGNAL_STRENGTH]!,
-        ),
+            CarpDataTypes().types[CarpDataTypes.SIGNAL_STRENGTH_TYPE_NAME]!)
       ]);
 
   @override
@@ -28,15 +30,16 @@ class AltBeacon extends DeviceConfiguration<AltBeaconDeviceRegistration> {
     int? majorId,
     int? minorId,
     int? referenceRssi,
-  }) => AltBeaconDeviceRegistration(
-    deviceId: deviceId,
-    deviceDisplayName: deviceDisplayName,
-    manufacturerId: manufacturerId,
-    organizationId: organizationId,
-    majorId: majorId,
-    minorId: minorId,
-    referenceRssi: referenceRssi,
-  );
+  }) =>
+      AltBeaconDeviceRegistration(
+        deviceId: deviceId,
+        deviceDisplayName: deviceDisplayName,
+        manufacturerId: manufacturerId,
+        organizationId: organizationId,
+        majorId: majorId,
+        minorId: minorId,
+        referenceRssi: referenceRssi,
+      );
 
   @override
   Function get fromJsonFunction => _$AltBeaconFromJson;
@@ -50,7 +53,7 @@ class AltBeacon extends DeviceConfiguration<AltBeaconDeviceRegistration> {
 ///
 /// The beacon ID is 20 bytes, made up out of the recommended subdivision
 /// [organizationId], [majorId], and [minorId].
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
+@JsonSerializable(fieldRename: FieldRename.none, includeIfNull: true)
 class AltBeaconDeviceRegistration extends DeviceRegistration {
   /// The beacon device manufacturer's company identifier code as maintained by
   /// the Bluetooth SIG assigned numbers database.

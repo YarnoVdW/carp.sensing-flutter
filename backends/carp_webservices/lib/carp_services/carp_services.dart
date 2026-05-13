@@ -45,7 +45,7 @@ import 'package:retry/retry.dart';
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import 'package:carp_core/carp_core.dart' hide Smartphone;
+import 'package:carp_core/carp_core.dart';
 import 'package:carp_mobile_sensing/carp_mobile_sensing.dart';
 
 part 'carp_base_service.dart';
@@ -73,116 +73,42 @@ part '../util/utils.dart';
 
 part 'carp_services.g.dart';
 
-/// Base exception for CARP Web Services.
-class CarpServiceException implements Exception {
-  final String message;
-  CarpServiceException([this.message = 'CARP Service Exception']);
-}
-
 /// Exception for CAWS REST/HTTP service communication.
-///
-/// Handles both HTTP exceptions from TCP/IP, NGINX, and CAWS application
-/// exceptions. The latter typically arise from CARP Core Java exceptions
-/// being thrown on the server side. These exceptions are mapped to HTTP
-/// status codes and messages sent back to the client.
-class CarpServiceRequestException extends CarpServiceException {
-  /// The HTTP status from CAWS associated with this exception.
-  HTTPStatus httpStatus;
-
-  /// The Java exception from CARP Core.
-  String? exception;
-
-  // The URL path that caused the exception.
+class CarpServiceException implements Exception {
+  HTTPStatus? httpStatus;
+  String? message;
   String? path;
 
-  /// Create new [CarpServiceRequestException].
-  CarpServiceRequestException(
-    super.message, {
-    required this.httpStatus,
-    this.exception,
-    this.path,
-  });
+  /// Create new [CarpServiceException].
+  CarpServiceException({this.httpStatus, this.message, this.path});
 
-  /// Create new [CarpServiceException] from a HTTP response [httpStatusCode]
-  /// and [response].
-  ///
-  /// There are two types of error messages - from CAWS and from NGINX.
-  /// CAWS errors contain 'path' and 'exception' fields,
-  /// whereas NGINX errors contain an 'instance' field.
-  factory CarpServiceRequestException.fromHttpStatus(
-    int httpStatusCode,
-    dynamic response,
-  ) {
-    String? message = 'Unknown error', exception, path;
-
-    if (response is Map<String, dynamic>) {
-      if (response.containsKey('path')) {
-        // CAWS error message
-        message = response["message"].toString();
-        exception = response["exception"].toString();
-        path = response["path"].toString();
-      } else if (response.containsKey('instance')) {
-        // NGINX error message
-        message = response["detail"].toString();
-        exception = '';
-        path = response["instance"].toString();
-      } else {
-        exception = response["exception"].toString();
-        path = response["path"].toString();
-      }
-    }
-
-    return switch (httpStatusCode) {
-      HttpStatus.badRequest => CarpBadRequestException(
-        message,
-        exception: exception,
-        path: path,
-      ),
-      HttpStatus.unauthorized || HttpStatus.forbidden =>
-        CarpUnauthorizedException(message, exception: exception, path: path),
-      HttpStatus.notFound => CarpNotFoundException(
-        message,
-        exception: exception,
-        path: path,
-      ),
-      HttpStatus.internalServerError => CarpInternalServerException(
-        message,
-        exception: exception,
-        path: path,
-      ),
-      _ => CarpServiceRequestException(
-        message,
+  /// Create new [CarpServiceException] from a HTTP response [httpStatusCode] and [map].
+  factory CarpServiceException.fromMap(
+      int httpStatusCode, Map<String, dynamic> map) {
+    // we have two types of error messages - from CAWS and from NGINX
+    if (map.containsKey('path')) {
+      return CarpServiceException(
         httpStatus: HTTPStatus(httpStatusCode),
-        exception: exception,
-        path: path,
-      ),
-    };
+        message: map["message"].toString(),
+        path: map["path"].toString(),
+      );
+    } else if (map.containsKey('instance')) {
+      return CarpServiceException(
+        httpStatus: HTTPStatus(httpStatusCode),
+        message: map["detail"].toString(),
+        path: map["instance"].toString(),
+      );
+    } else {
+      return CarpServiceException(
+        httpStatus: HTTPStatus(httpStatusCode),
+        message: 'Unknown error',
+      );
+    }
   }
 
   @override
   String toString() =>
-      "$runtimeType: $httpStatus - $message"
-      " - ${exception ?? "exception"} - ${path ?? "path"}";
-}
-
-class CarpBadRequestException extends CarpServiceRequestException {
-  CarpBadRequestException(super.message, {super.exception, super.path})
-    : super(httpStatus: const HTTPStatus(HttpStatus.badRequest));
-}
-
-class CarpUnauthorizedException extends CarpServiceRequestException {
-  CarpUnauthorizedException(super.message, {super.exception, super.path})
-    : super(httpStatus: const HTTPStatus(HttpStatus.unauthorized));
-}
-
-class CarpNotFoundException extends CarpServiceRequestException {
-  CarpNotFoundException(super.message, {super.exception, super.path})
-    : super(httpStatus: const HTTPStatus(HttpStatus.notFound));
-}
-
-class CarpInternalServerException extends CarpServiceRequestException {
-  CarpInternalServerException(super.message, {super.exception, super.path})
-    : super(httpStatus: const HTTPStatus(HttpStatus.internalServerError));
+      "CarpServiceException: ${(httpStatus != null) ? "$httpStatus - " : ""} ${message ?? ""} - ${path ?? ""}";
 }
 
 /// Implements HTTP Response Code and associated Reason Phrase.
@@ -215,12 +141,15 @@ class HTTPStatus {
     505: "HTTP Version Not Supported",
   };
 
-  final int httpResponseCode;
-  String get httpReasonPhrase =>
-      httpStatusPhrases[httpResponseCode] ?? "Unknown Status Code";
+  int httpResponseCode;
+  String? httpReasonPhrase;
 
-  const HTTPStatus(this.httpResponseCode);
+  HTTPStatus(this.httpResponseCode, [String? httpPhrase]) {
+    httpReasonPhrase = ((httpPhrase == null) || (httpPhrase.isEmpty))
+        ? httpStatusPhrases[httpResponseCode]
+        : httpPhrase;
+  }
 
   @override
-  String toString() => "$httpReasonPhrase ($httpResponseCode)";
+  String toString() => "$httpResponseCode $httpReasonPhrase";
 }

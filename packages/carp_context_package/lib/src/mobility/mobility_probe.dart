@@ -15,32 +15,28 @@ class MobilityProbe extends StreamProbe {
   }
 
   @override
-  Future<bool> onResume() async {
-    // get the location data stream from the LocationManager
-    Stream<LocationSample> locationStream = LocationManager().onLocationChanged
-        .map(
-          (loc) => LocationSample(
-            GeoLocation(loc.latitude, loc.longitude),
-            DateTime.now(),
-          ),
-        );
+  Future<bool> onStart() async {
+    // start the location data stream from the LocationManager
+    Stream<LocationSample> locationStream = LocationManager()
+        .onLocationChanged
+        .map((loc) => LocationSample(
+            GeoLocation(loc.latitude, loc.longitude), DateTime.now()));
 
     // Feed the location data stream to the MobilityFeatures singleton
     // which in turn produce [MobilityContext] readings.
     await MobilityFeatures().startListening(locationStream);
 
-    return await super.onResume();
+    return await super.onStart();
   }
 
   @override
-  Future<bool> onPause() async {
+  Future<bool> onStop() async {
     await MobilityFeatures().stopListening();
-    return await super.onPause();
+    return await super.onStop();
   }
 
   /// The stream of mobility features as they are generated.
   @override
   Stream<Measurement> get stream => MobilityFeatures().contextStream.map(
-    (context) => Measurement.fromData(Mobility.fromMobilityContext(context)),
-  );
+      (context) => Measurement.fromData(Mobility.fromMobilityContext(context)));
 }

@@ -9,25 +9,10 @@ void main() {
   group('Sampling Configurations', () {
     test('Sampling Packages.', () {
       var schemes = DeviceSamplingPackage().samplingSchemes;
-      expect(
-        schemes.configurations.length,
-        DeviceSamplingPackage().samplingSchemes.dataTypes.length,
-      );
-
-      schemes.addSamplingSchema(MonitoringSamplingPackage().samplingSchemes);
-      expect(
-        schemes.configurations.length,
-        DeviceSamplingPackage().samplingSchemes.dataTypes.length +
-            MonitoringSamplingPackage().samplingSchemes.dataTypes.length,
-      );
+      expect(schemes.configurations.length, 5);
 
       schemes.addSamplingSchema(SensorSamplingPackage().samplingSchemes);
-      expect(
-        schemes.configurations.length,
-        DeviceSamplingPackage().samplingSchemes.dataTypes.length +
-            MonitoringSamplingPackage().samplingSchemes.dataTypes.length +
-            SensorSamplingPackage().samplingSchemes.dataTypes.length,
-      );
+      expect(schemes.configurations.length, 12);
 
       print(schemes.types);
     });

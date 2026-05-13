@@ -48,14 +48,12 @@ class CarpProtocolService extends CarpBaseService
 
   @override
   Future<StudyProtocol> getBy(String protocolId, [String? versionTag]) async =>
-      StudyProtocol.fromJson(
-        await _rpc(GetBy(protocolId, versionTag)) as Map<String, dynamic>,
-      );
+      StudyProtocol.fromJson(await _rpc(GetBy(protocolId, versionTag)));
 
   @override
   Future<List<ProtocolVersion>> getVersionHistoryFor(String protocolId) async {
     Map<String, dynamic> responseJson =
-        (await _rpc(GetVersionHistoryFor(protocolId)) as Map<String, dynamic>);
+        await (_rpc(GetVersionHistoryFor(protocolId)));
     final items = responseJson['items'] as List<dynamic>;
     return items
         .map((item) => ProtocolVersion.fromJson(item as Map<String, dynamic>))
@@ -67,16 +65,12 @@ class CarpProtocolService extends CarpBaseService
     String protocolId,
     String versionTag,
     List<ExpectedParticipantData> expectedParticipantData,
-  ) async => StudyProtocol.fromJson(
-    await _rpc(
-          UpdateParticipantDataConfiguration(
-            protocolId,
-            versionTag,
-            expectedParticipantData,
-          ),
-        )
-        as Map<String, dynamic>,
-  );
+  ) async =>
+      StudyProtocol.fromJson(await _rpc(UpdateParticipantDataConfiguration(
+        protocolId,
+        versionTag,
+        expectedParticipantData,
+      )));
 
   @override
   Future<StudyProtocol> createCustomProtocol(
@@ -84,11 +78,8 @@ class CarpProtocolService extends CarpBaseService
     String name,
     String description,
     String customProtocol,
-  ) async => StudyProtocol.fromJson(
-    await _rpc(
+  ) async =>
+      StudyProtocol.fromJson(await _rpc(
           CreateCustomProtocol(ownerId, name, description, customProtocol),
-          'protocol-factory-service',
-        )
-        as Map<String, dynamic>,
-  );
+          'protocol-factory-service'));
 }

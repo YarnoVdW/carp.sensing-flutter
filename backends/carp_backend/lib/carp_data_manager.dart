@@ -19,7 +19,7 @@ class CarpDataManagerFactory implements DataManagerFactory {
   }
 }
 
-/// Upload CAMS measurement to the CARP Web Services (CAWS) backend.
+/// Stores CAMS data points in the CARP Web Services (CAWS) backend.
 ///
 /// Upload of data to CAWS can happen in three ways, as specified in
 /// [CarpUploadMethod]:
@@ -68,24 +68,18 @@ class CarpDataManager extends AbstractDataManager {
   }
 
   @override
-  Future<void> configure({
-    required DataEndPoint dataEndPoint,
-    required SmartphoneDeployment deployment,
-    required Stream<Measurement> measurements,
-  }) async {
+  Future<void> initialize(
+    DataEndPoint dataEndPoint,
+    SmartphoneDeployment deployment,
+    Stream<Measurement> measurements,
+  ) async {
     info("$runtimeType - Initializing, endpoint: $dataEndPoint");
     assert(dataEndPoint is CarpDataEndPoint);
-    await super.configure(
-      dataEndPoint: dataEndPoint,
-      deployment: deployment,
-      measurements: measurements,
-    );
+    await super.initialize(dataEndPoint, deployment, measurements);
     carpEndPoint = dataEndPoint as CarpDataEndPoint;
 
-    assert(
-      CarpService().isConfigured,
-      'CarpService is not configured -- cannot upload data to this end point.',
-    );
+    assert(CarpService().isConfigured,
+        'CarpService is not configured -- cannot upload data to this end point.');
 
     buffer.initialize(deployment, measurements);
 
@@ -95,15 +89,13 @@ class CarpDataManager extends AbstractDataManager {
         : carpEndPoint.uploadInterval;
 
     uploadTimer = Timer.periodic(
-      Duration(minutes: uploadInterval),
-      (_) => uploadBufferedMeasurements(),
-    );
+        Duration(minutes: uploadInterval), (_) => uploadBufferedMeasurements());
 
     // Check the current connectivity status and listen for changes
     Connectivity().checkConnectivity().then((status) => connectivity = status);
-    Connectivity().onConnectivityChanged.listen(
-      (status) => connectivity = status,
-    );
+    Connectivity()
+        .onConnectivityChanged
+        .listen((status) => connectivity = status);
 
     if (!CarpDataStreamService().isConfigured) {
       CarpDataStreamService().configureFrom(CarpService());
@@ -127,9 +119,8 @@ class CarpDataManager extends AbstractDataManager {
     if (carpEndPoint.onlyUploadOnWiFi &&
         !connectivity.contains(ConnectivityResult.wifi)) {
       warning(
-        '$runtimeType - WiFi required by the data endpoint, but no wifi connectivity - '
-        'cannot upload buffered data.',
-      );
+          '$runtimeType - WiFi required by the data endpoint, but no wifi connectivity - '
+          'cannot upload buffered data.');
       return;
     }
 
@@ -146,10 +137,8 @@ class CarpDataManager extends AbstractDataManager {
         try {
           await CarpAuthService().refresh();
         } catch (error) {
-          warning(
-            '$runtimeType - Failed to refresh access token - $error. '
-            'Cannot upload data.',
-          );
+          warning('$runtimeType - Failed to refresh access token - $error. '
+              'Cannot upload data.');
           return;
         }
       }
@@ -164,14 +153,12 @@ class CarpDataManager extends AbstractDataManager {
             compress: compress,
           );
           addEvent(
-            DataManagerEvent(CarpDataManagerEventTypes.dataStreamAppended),
-          );
+              DataManagerEvent(CarpDataManagerEventTypes.dataStreamAppended));
           break;
         case CarpUploadMethod.datapoint:
           await uploadDataStreamBatchesAsDataPoint(batches);
-          addEvent(
-            DataManagerEvent(CarpDataManagerEventTypes.dataPointsBatchUploaded),
-          );
+          addEvent(DataManagerEvent(
+              CarpDataManagerEventTypes.dataPointsBatchUploaded));
           break;
         case CarpUploadMethod.file:
           // TODO - implement file method.
@@ -192,10 +179,8 @@ class CarpDataManager extends AbstractDataManager {
         }
       }
 
-      info(
-        "$runtimeType - Upload of data batches done. "
-        "${batches.length} batches with $count measurements in total uploaded.",
-      );
+      info("$runtimeType - Upload of data batches done. "
+          "${batches.length} batches with $count measurements in total uploaded.");
 
       // if everything is uploaded successfully, then clean up the DB
       await buffer.cleanup(carpEndPoint.deleteWhenUploaded);
@@ -219,20 +204,19 @@ class CarpDataManager extends AbstractDataManager {
         var dataPoint = DataPoint(
           DataPointHeader(
             studyId: deployment.studyDeploymentId,
-            userId: CarpService().study?.participantId,
+            userId: deployment.participantId,
             dataFormat: measurement.dataType,
-            deviceRoleName:
-                measurement.taskControl?.targetDevice?.roleName ??
+            deviceRoleName: measurement.taskControl?.targetDevice?.roleName ??
                 deployment.deviceConfiguration.roleName,
             triggerId: measurement.taskControl?.triggerId.toString() ?? '0',
-            startTime: DateTime.fromMicrosecondsSinceEpoch(
-              measurement.sensorStartTime,
-            ).toUtc(),
+            startTime:
+                DateTime.fromMicrosecondsSinceEpoch(measurement.sensorStartTime)
+                    .toUtc(),
             endTime: measurement.sensorEndTime == null
                 ? null
                 : DateTime.fromMicrosecondsSinceEpoch(
-                    measurement.sensorEndTime!,
-                  ).toUtc(),
+                        measurement.sensorEndTime!)
+                    .toUtc(),
           ),
           measurement.data,
         );
@@ -241,8 +225,7 @@ class CarpDataManager extends AbstractDataManager {
     }
 
     info(
-      '$runtimeType - Batch uploading data points to CAWS, N=${dataPoints.length}',
-    );
+        '$runtimeType - Batch uploading data points to CAWS, N=${dataPoints.length}');
     dataPointReference.batch(dataPoints);
   }
 
@@ -251,52 +234,44 @@ class CarpDataManager extends AbstractDataManager {
   Future<void> uploadFile(FileData data) async {
     if (data.path == null) {
       warning(
-        '$runtimeType - No path to local FileData specified when trying to upload file - data: $data.',
-      );
+          '$runtimeType - No path to local FileData specified when trying to upload file - data: $data.');
       return;
     }
 
     info(
-      "$runtimeType - File attachment upload to CAWS started - path : '${data.path}'",
-    );
+        "$runtimeType - File attachment upload to CAWS started - path : '${data.path}'");
 
     try {
       final file = File(data.path!);
 
       if (!file.existsSync()) {
         warning(
-          '$runtimeType - The file attachment is not found - skipping upload.',
-        );
+            '$runtimeType - The file attachment is not found - skipping upload.');
       } else {
-        final String deviceID = DeviceInfoService().deviceID.toString();
+        final String deviceID = DeviceInfo().deviceID.toString();
         data.metadata!['device_id'] = deviceID;
         data.metadata!['study_id'] = deployment.studyId ?? '';
         data.metadata!['study_deployment_id'] = deployment.studyDeploymentId;
 
         // start upload
-        final FileUploadTask uploadTask = CarpService()
-            .getFileStorageReference()
-            .upload(file, data.metadata);
+        final FileUploadTask uploadTask =
+            CarpService().getFileStorageReference().upload(file, data.metadata);
 
         // await the upload is successful
         CarpFileResponse response = await uploadTask.onComplete;
 
-        addEvent(
-          DataManagerEvent(CarpDataManagerEventTypes.fileUploaded, file.path),
-        );
+        addEvent(DataManagerEvent(
+          CarpDataManagerEventTypes.fileUploaded,
+          file.path,
+        ));
         info(
-          "$runtimeType - File upload to CAWS finished - server file id:${response.id}.",
-        );
+            "$runtimeType - File upload to CAWS finished - server file id:${response.id}.");
 
         // delete the local file once uploaded?
         if (carpEndPoint.deleteWhenUploaded) {
           file.delete();
-          addEvent(
-            FileDataManagerEvent(
-              FileDataManagerEventTypes.fileDeleted,
-              file.path,
-            ),
-          );
+          addEvent(FileDataManagerEvent(
+              FileDataManagerEventTypes.fileDeleted, file.path));
         }
       }
     } catch (error) {

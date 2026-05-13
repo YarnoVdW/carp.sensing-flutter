@@ -4,14 +4,15 @@
  * Use of this source code is governed by a MIT-style license that can be
  * found in the LICENSE file.
  */
-part of '../../../common.dart';
+
+part of '../../carp_core_common.dart';
 
 /// A [DeviceRegistration] configures a [DeviceConfiguration] as part of the
 /// deployment of a [StudyProtocol].
 ///
 /// Note that this is an abstract class and should not be used. If a simple
 /// device registration is needed, use a [DefaultDeviceRegistration].
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
+@JsonSerializable(fieldRename: FieldRename.none, includeIfNull: true)
 class DeviceRegistration extends Serializable {
   /// An ID for the device, used to disambiguate between devices of the same type,
   /// as provided by the device itself.
@@ -54,7 +55,7 @@ class DeviceRegistration extends Serializable {
 
 /// A concrete [DeviceRegistration] which solely implements the base properties
 /// and nothing else.
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
+@JsonSerializable(fieldRename: FieldRename.none, includeIfNull: true)
 class DefaultDeviceRegistration extends DeviceRegistration {
   /// Create a new [DefaultDeviceRegistration]
   ///  * [deviceId] - a unique id for this device.
@@ -84,7 +85,7 @@ class DefaultDeviceRegistration extends DeviceRegistration {
 /// use as a network address in communications within a network segment.
 ///
 /// This is equivalent to the EUI-48 identifier.
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
+@JsonSerializable(fieldRename: FieldRename.none, includeIfNull: true)
 class MACAddressDeviceRegistration extends DeviceRegistration {
   /// The MAC address, represented according to the recommended IEEE 802 standard notation.
   /// Six groups of two upper case hexadecimal digits, separate by hyphens (-).

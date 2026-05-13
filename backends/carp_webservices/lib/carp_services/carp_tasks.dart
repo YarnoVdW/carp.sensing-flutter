@@ -6,7 +6,13 @@
  */
 part of 'carp_services.dart';
 
-enum TaskStateType { idle, working, canceled, success, failure }
+enum TaskStateType {
+  idle,
+  working,
+  canceled,
+  success,
+  failure,
+}
 
 abstract class CarpServiceTask {
   CarpServiceTask._(this.reference);
@@ -84,7 +90,7 @@ class FileUploadTask extends CarpServiceTask {
         debugPrint(toJsonString(responseJson));
 
         switch (httpStatusCode) {
-          // CAWS returns "201 Created" when a file is created on the server.
+          // CARP web service returns "201 Created" when a file is created on the server.
           case HttpStatus.ok:
           case HttpStatus.created:
             {
@@ -95,14 +101,13 @@ class FileUploadTask extends CarpServiceTask {
               break;
             }
           default:
-            // All other cases are treated as an exception.
+            // All other cases are treated as an error.
             {
               _state = TaskStateType.failure;
-              _completer.completeError(HTTPStatus(httpStatusCode));
-              throw CarpServiceRequestException.fromHttpStatus(
-                httpStatusCode,
-                responseJson,
-              );
+              final HTTPStatus status =
+                  HTTPStatus(httpStatusCode, response.reasonPhrase);
+              _completer.completeError(status);
+              throw CarpServiceException.fromMap(httpStatusCode, responseJson);
             }
         }
       });
@@ -126,7 +131,7 @@ class FileDownloadTask extends CarpServiceTask {
   File file;
 
   FileDownloadTask._(FileStorageReference reference, this.file)
-    : super._(reference);
+      : super._(reference);
 
   final Completer<int> _completer = Completer<int>();
 
@@ -154,16 +159,14 @@ class FileDownloadTask extends CarpServiceTask {
             break;
           }
         default:
+          // All other cases are treated as an error.
           {
             _state = TaskStateType.failure;
             final Map<String, dynamic> responseJson =
                 json.decode(response.body) as Map<String, dynamic>;
 
-            _completer.completeError(HTTPStatus(httpStatusCode));
-            throw CarpServiceRequestException.fromHttpStatus(
-              httpStatusCode,
-              responseJson,
-            );
+            _completer.completeError(httpStatusCode);
+            throw CarpServiceException.fromMap(httpStatusCode, responseJson);
           }
       }
     });
@@ -182,17 +185,17 @@ class FileDownloadTask extends CarpServiceTask {
 /// A file object as retrieved from the CARP server.
 class CarpFileResponse {
   CarpFileResponse._(this.map)
-    : id = map['id'] as int,
-      storageName = map['storage_name'].toString(),
-      originalName = map['original_name'].toString(),
-      metadata = (map['metadata'] != null)
-          ? map['metadata'] as Map<String, dynamic>
-          : {},
-      studyId = map['study_id'].toString(),
-      createdBy = map['created_by'].toString(),
-      createdAt = DateTime.parse(map['created_at'].toString()),
-      updatedBy = map['updated_by'].toString(),
-      updatedAt = DateTime.parse(map['updated_at'].toString());
+      : id = map['id'] as int,
+        storageName = map['storage_name'].toString(),
+        originalName = map['original_name'].toString(),
+        metadata = (map['metadata'] != null)
+            ? map['metadata'] as Map<String, dynamic>
+            : {},
+        studyId = map['study_id'].toString(),
+        createdBy = map['created_by'].toString(),
+        createdAt = DateTime.parse(map['created_at'].toString()),
+        updatedBy = map['updated_by'].toString(),
+        updatedAt = DateTime.parse(map['updated_at'].toString());
 
   final Map<dynamic, dynamic> map;
   final int id;

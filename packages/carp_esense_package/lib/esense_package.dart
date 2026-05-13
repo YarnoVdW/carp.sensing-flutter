@@ -47,27 +47,22 @@ class ESenseSamplingPackage implements SamplingPackage {
   /// (accelerometer & gyroscope).
   static const String ESENSE_SENSOR = "$ESENSE_NAMESPACE.sensor";
 
-  final DeviceManager _deviceManager = ESenseDeviceManager(
-    ESenseDevice.DEVICE_TYPE,
-  );
+  final DeviceManager _deviceManager =
+      ESenseDeviceManager(ESenseDevice.DEVICE_TYPE);
 
   @override
   DataTypeSamplingSchemeMap get samplingSchemes =>
       DataTypeSamplingSchemeMap.from([
-        DataTypeSamplingScheme(
-          DataTypeMetaData(
-            type: ESENSE_BUTTON,
-            displayName: "eSense Button Events",
-            timeType: DataTimeType.POINT,
-          ),
-        ),
-        DataTypeSamplingScheme(
-          DataTypeMetaData(
-            type: ESENSE_SENSOR,
-            displayName: "eSense Movement Events",
-            timeType: DataTimeType.TIME_SPAN,
-          ),
-        ),
+        DataTypeSamplingScheme(DataTypeMetaData(
+          type: ESENSE_BUTTON,
+          displayName: "eSense Button Events",
+          timeType: DataTimeType.POINT,
+        )),
+        DataTypeSamplingScheme(DataTypeMetaData(
+          type: ESENSE_SENSOR,
+          displayName: "eSense Movement Events",
+          timeType: DataTimeType.TIME_SPAN,
+        ))
       ]);
 
   @override
@@ -75,17 +70,14 @@ class ESenseSamplingPackage implements SamplingPackage {
 
   @override
   Probe? create(String type) => switch (type) {
-    ESENSE_BUTTON => ESenseButtonProbe(),
-    ESENSE_SENSOR => ESenseSensorProbe(),
-    _ => null,
-  };
+        ESENSE_BUTTON => ESenseButtonProbe(),
+        ESENSE_SENSOR => ESenseSensorProbe(),
+        _ => null,
+      };
 
   @override
   void onRegister() {
-    FromJsonFactory().registerAll([
-      ESenseDevice(),
-      BLEDeviceRegistration(bleAddress: ''),
-    ]);
+    FromJsonFactory().register(ESenseDevice());
 
     // register all data types
     FromJsonFactory().registerAll([

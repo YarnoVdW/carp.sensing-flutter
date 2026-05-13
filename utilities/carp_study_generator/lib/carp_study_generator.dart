@@ -3,16 +3,14 @@
 /// * informed consent
 /// * translation files (localization)
 /// * messages and news articles
-library;
+library carp_study_generator;
 
 import 'dart:async';
 
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:carp_core/carp_core.dart';
 import 'package:carp_mobile_sensing/carp_mobile_sensing.dart';

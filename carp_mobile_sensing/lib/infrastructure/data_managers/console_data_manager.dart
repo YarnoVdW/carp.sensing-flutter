@@ -15,7 +15,7 @@ class ConsoleDataManager extends AbstractDataManager {
 
   @override
   Future<void> onMeasurement(Measurement measurement) async =>
-      debugPrint(jsonEncode(measurement));
+      print(jsonEncode(measurement));
 }
 
 class ConsoleDataManagerFactory implements DataManagerFactory {

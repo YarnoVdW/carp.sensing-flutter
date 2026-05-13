@@ -2,10 +2,10 @@ part of '../../carp_context_package.dart';
 
 /// An [OnlineService] for the location manager.
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
-class LocationService extends ServiceConfiguration<ServiceRegistration> {
+class LocationService extends OnlineService {
   /// The type of a location service.
   static const String DEVICE_TYPE =
-      '${CamsDevice.CAMS_DEVICE_NAMESPACE}.LocationService';
+      '${DeviceConfiguration.DEVICE_NAMESPACE}.LocationService';
 
   /// The default role name for a location service.
   static const String DEFAULT_ROLE_NAME = 'Location Service';
@@ -74,18 +74,26 @@ class LocationService extends ServiceConfiguration<ServiceRegistration> {
 }
 
 /// A [DeviceManager] for the location service.
-class LocationServiceManager extends ContextServiceManager<LocationService> {
-  /// A handle to the [LocationManager] used by this service.
+class LocationServiceManager extends OnlineServiceManager<LocationService> {
+  /// A handle to the [LocationManager].
   LocationManager manager = LocationManager();
 
   @override
-  String? get displayName => manager.toString();
-
-  LocationServiceManager([LocationService? configuration])
-    : super(LocationService.DEVICE_TYPE, configuration: configuration);
+  String get id => manager.hashCode.toString();
 
   @override
-  void onConfigure() => manager.configure(configuration!);
+  String? get displayName => 'Location Service';
+
+  LocationServiceManager([
+    LocationService? configuration,
+  ]) : super(LocationService.DEVICE_TYPE, configuration);
+
+  @override
+  // ignore: avoid_renaming_method_parameters
+  void onInitialize(LocationService service) => manager.configure(service);
+
+  @override
+  Future<bool> canConnect() async => true;
 
   @override
   Future<DeviceStatus> onConnect() async => manager.enabled
@@ -93,7 +101,10 @@ class LocationServiceManager extends ContextServiceManager<LocationService> {
       : (await manager.enable().then((_) => DeviceStatus.connected));
 
   @override
-  Future<bool> onHasPermissions() async => await manager.hasPermission();
+  Future<bool> onDisconnect() async => true;
+
+  @override
+  Future<bool> onHasPermissions() async => await manager.isGranted();
 
   @override
   Future<void> onRequestPermissions() async =>

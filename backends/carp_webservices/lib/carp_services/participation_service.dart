@@ -26,54 +26,27 @@ class CarpParticipationService extends CarpBaseService
   ParticipationReference participation([String? studyDeploymentId]) =>
       ParticipationReference._(this, getStudyDeploymentId(studyDeploymentId));
 
-  /// Get the list of active participation invitations for an [accountId]
-  /// and for a app named [applicationName].
+  /// Get the list of active participation invitations for an [accountId].
+  /// This will return all deployments that this account (user) is invited to.
   ///
   /// Note that the [accountId] is the unique CARP account id (and not the
-  /// username). The [applicationName] is typically the Flutter application name
-  /// specified in the `pubspec.yaml` file.
-  ///
-  /// If [accountId] is not specified, the account id of the currently
+  /// username).
+  /// If [accountId] is not specified, then the account id of the currently
   /// authenticated [CarpUser] is used.
-  /// If [applicationName] is not specified, all types of applications are considered.
   @override
-  Future<List<ActiveParticipationInvitation>>
-  getActiveParticipationInvitations({
-    String? accountId,
-    String? applicationName,
-  }) async {
+  Future<List<ActiveParticipationInvitation>> getActiveParticipationInvitations(
+      [String? accountId]) async {
     accountId ??= CarpAuthService().currentUser.id;
 
-    debug(
-      "$runtimeType - Getting invitations for '$accountId' for application: '$applicationName'.",
-    );
+    Map<String, dynamic> responseJson =
+        await _rpc(GetActiveParticipationInvitations(accountId));
 
-    dynamic responseJson = await _rpc(
-      GetActiveParticipationInvitations(accountId),
-    );
-
-    // we expect a list of invitations
-    List<dynamic> list = responseJson as List<dynamic>;
-    List<ActiveParticipationInvitation> invitations = list
-        .map(
-          (item) => ActiveParticipationInvitation.fromJson(
-            item as Map<String, dynamic>,
-          ),
-        )
+    // we expect a list of 'items' which maps to the invitations
+    List<dynamic> items = responseJson['items'] as List<dynamic>;
+    return items
+        .map((item) => ActiveParticipationInvitation.fromJson(
+            item as Map<String, dynamic>))
         .toList();
-
-    // if a applicationName is specified, filter on that
-    if (applicationName != null) {
-      invitations = invitations
-          .where(
-            (invitation) =>
-                (invitation.invitation.applicationData?['applicationName'] ==
-                applicationName),
-          )
-          .toList();
-    }
-
-    return invitations;
   }
 
   /// Get a study invitation from CARP by allowing the user to select from
@@ -85,32 +58,30 @@ class CarpParticipationService extends CarpBaseService
   /// If the user is invited to more than one study and [showInvitations] is `true`,
   /// a user-interface dialog for selecting amongst the invitations is shown.
   /// If not, the study id of the first invitation is returned.
-  /// If [device] is specified, only invitations for that device are considered.
-  /// The [device] is the full namespace of the device, e.g.,
-  /// "dk.carp.cams.devices.Smartphone".
   ///
   /// [allowClose] specifies whether the user can close the window without
   /// selecting an invitation.
+  ///
+  /// Throws a [CarpServiceException] if not successful.
   Future<ActiveParticipationInvitation?> getStudyInvitation(
     BuildContext context, {
     bool showInvitations = true,
-    String? device,
     bool allowClose = false,
   }) async {
     if (!isConfigured) {
       throw CarpServiceException(
-        "CARP Service not initialized. Call 'CarpService().configure()' first.",
-      );
+          message:
+              "CARP Service not initialized. Call 'CarpService().configure()' first.");
     }
 
     if (!CarpAuthService().authenticated) {
       throw CarpServiceException(
-        "The current user is not authenticated to CAWS. Call 'CarpAuthService().authenticate...()' first.",
-      );
+          message:
+              "The current user is not authenticated to CAWS. Call 'CarpAuthService().authenticate...()' first.");
     }
 
     List<ActiveParticipationInvitation> invitations =
-        await getActiveParticipationInvitations(applicationName: device);
+        await getActiveParticipationInvitations();
 
     ActiveParticipationInvitation? invitation;
 
@@ -121,11 +92,11 @@ class CarpParticipationService extends CarpBaseService
     } else {
       if (context.mounted) {
         invitation = await showDialog<ActiveParticipationInvitation>(
-          context: context,
-          barrierDismissible: allowClose,
-          builder: (BuildContext context) =>
-              ActiveParticipationInvitationDialog().build(context, invitations),
-        );
+            context: context,
+            barrierDismissible: allowClose,
+            builder: (BuildContext context) =>
+                ActiveParticipationInvitationDialog()
+                    .build(context, invitations));
       }
     }
 
@@ -138,17 +109,15 @@ class CarpParticipationService extends CarpBaseService
 
   @override
   Future<List<ParticipantData>> getParticipantDataList(
-    List<String> studyDeploymentIds,
-  ) async {
+      List<String> studyDeploymentIds) async {
     // early out if empty list
     if (studyDeploymentIds.isEmpty) return [];
 
-    dynamic responseJson = await _rpc(
-      GetParticipantDataList(studyDeploymentIds),
-    );
+    Map<String, dynamic> responseJson =
+        await _rpc(GetParticipantDataList(studyDeploymentIds));
 
-    // we expect a list of participant data
-    List<dynamic> items = responseJson as List<dynamic>;
+    // we expect a list of 'items'
+    List<dynamic> items = responseJson['items'] as List<dynamic>;
     if (items.isEmpty) return [];
 
     List<ParticipantData> data = [];
@@ -164,7 +133,7 @@ class CarpParticipationService extends CarpBaseService
     String studyDeploymentId,
     Map<String, Data> data, [
     String? inputByParticipantRole,
-  ]) async => await participation(
-    studyDeploymentId,
-  ).setParticipantData(data, inputByParticipantRole);
+  ]) async =>
+      await participation(studyDeploymentId)
+          .setParticipantData(data, inputByParticipantRole);
 }

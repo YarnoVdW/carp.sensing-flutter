@@ -10,7 +10,7 @@ part of 'communication.dart';
 /// A [TextMessage] anonymizer function. Anonymizes:
 ///  - address
 ///  - body
-TextMessage textMessageAnonymizer(Data data) {
+TextMessage textMessageAnoymizer(Data data) {
   assert(data is TextMessage);
   var msg = data as TextMessage;
   if (msg.address != null) {
@@ -23,24 +23,24 @@ TextMessage textMessageAnonymizer(Data data) {
   return msg;
 }
 
-/// A [TextMessageLog] anonymizer function. Anonymizes each [TextMessage]
-/// entry in the log using the [textMessageAnonymizer] function.
-Data textMessageLogAnonymizer(Data data) {
-  assert(data is TextMessageLog);
-  TextMessageLog log = data as TextMessageLog;
+/// A [TextMessageLog] anonymizer function. Anonymizes each [TextMessageDatum]
+/// entry in the log using the [textMessageAnoymizer] function.
+Data textMessageLogAnoymizer(Data datum) {
+  assert(datum is TextMessageLog);
+  TextMessageLog log = datum as TextMessageLog;
   for (var msg in log.textMessageLog) {
-    textMessageAnonymizer(msg);
+    textMessageAnoymizer(msg);
   }
   return log;
 }
 
 /// A [PhoneLog] anonymizer function. Anonymizes each [PhoneCall]
-/// entry in the log using the [phoneCallAnonymizer] function.
-Data phoneLogAnonymizer(Data data) {
+/// entry in the log using the [phoneCallAnoymizer] function.
+Data phoneLogAnoymizer(Data data) {
   assert(data is PhoneLog);
   PhoneLog log = data as PhoneLog;
   for (var call in log.phoneLog) {
-    phoneCallAnonymizer(call);
+    phoneCallAnoymizer(call);
   }
   return log;
 }
@@ -49,11 +49,10 @@ Data phoneLogAnonymizer(Data data) {
 ///  - formattedNumber
 ///  - number
 ///  - name
-PhoneCall phoneCallAnonymizer(PhoneCall call) {
+PhoneCall phoneCallAnoymizer(PhoneCall call) {
   if (call.formattedNumber != null) {
-    call.formattedNumber = sha1
-        .convert(utf8.encode(call.formattedNumber!))
-        .toString();
+    call.formattedNumber =
+        sha1.convert(utf8.encode(call.formattedNumber!)).toString();
   }
   if (call.number != null) {
     call.number = sha1.convert(utf8.encode(call.number!)).toString();
@@ -66,12 +65,12 @@ PhoneCall phoneCallAnonymizer(PhoneCall call) {
 }
 
 /// A [Calendar] anonymizer function. Anonymizes each [CalendarEvent]
-/// entry in the calendar using the [calendarEventAnonymizer] function.
-Data calendarAnonymizer(Data data) {
+/// entry in the calendar using the [calendarEventAnoymizer] function.
+Data calendarAnoymizer(Data data) {
   assert(data is Calendar);
   Calendar calendar = data as Calendar;
   for (var event in calendar.calendarEvents) {
-    calendarEventAnonymizer(event);
+    calendarEventAnoymizer(event);
   }
   return calendar;
 }
@@ -80,14 +79,18 @@ Data calendarAnonymizer(Data data) {
 ///  - title
 ///  - description
 ///  - names of all attendees
-CalendarEvent calendarEventAnonymizer(CalendarEvent event) {
+CalendarEvent calendarEventAnoymizer(CalendarEvent event) {
   if (event.title != null) {
     event.title = sha1.convert(utf8.encode(event.title!)).toString();
   }
   if (event.description != null) {
-    event.description = sha1
-        .convert(utf8.encode(event.description!))
-        .toString();
+    event.description =
+        sha1.convert(utf8.encode(event.description!)).toString();
+  }
+  if (event.attendees != null) {
+    event.attendees = event.attendees!
+        .map((name) => sha1.convert(utf8.encode(name!)).toString())
+        .toList();
   }
 
   return event;

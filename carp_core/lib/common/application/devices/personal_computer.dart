@@ -4,7 +4,8 @@
  * Use of this source code is governed by a MIT-style license that can be
  * found in the LICENSE file.
  */
-part of '../../../common.dart';
+
+part of '../../carp_core_common.dart';
 
 /// Configuration of an internet-connected personal computer with no built-in [sensors].
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -19,7 +20,9 @@ class PersonalComputer
 
   /// Create a new personal computer device descriptor.
   /// If [roleName] is not specified, then the [DEFAULT_ROLE_NAME] is used.
-  PersonalComputer({super.roleName = PersonalComputer.DEFAULT_ROLE_NAME});
+  PersonalComputer({
+    super.roleName = PersonalComputer.DEFAULT_ROLE_NAME,
+  });
 
   @override
   PersonalComputerRegistration createRegistration({
@@ -31,16 +34,17 @@ class PersonalComputer
     String? deviceModel,
     String? operatingSystem,
     String? version,
-  }) => PersonalComputerRegistration(
-    deviceId: deviceId,
-    deviceDisplayName: deviceDisplayName,
-    platform: platform,
-    computerName: computerName,
-    memorySize: memorySize,
-    deviceModel: deviceModel,
-    operatingSystem: operatingSystem,
-    version: version,
-  );
+  }) =>
+      PersonalComputerRegistration(
+        deviceId: deviceId,
+        deviceDisplayName: deviceDisplayName,
+        platform: platform,
+        computerName: computerName,
+        memorySize: memorySize,
+        deviceModel: deviceModel,
+        operatingSystem: operatingSystem,
+        version: version,
+      );
 
   @override
   Function get fromJsonFunction => _$PersonalComputerFromJson;
@@ -56,7 +60,7 @@ class PersonalComputer
 /// [device_info_plus](https://pub.dev/packages/device_info_plus) via the
 /// [MacOsDeviceInfo](https://pub.dev/documentation/device_info_plus/latest/device_info_plus/MacOsDeviceInfo-class.html)
 /// and [WindowsDeviceInfo](https://pub.dev/documentation/device_info_plus/latest/device_info_plus/WindowsDeviceInfo-class.html) classes.
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
+@JsonSerializable(fieldRename: FieldRename.none, includeIfNull: true)
 class PersonalComputerRegistration extends DeviceRegistration {
   String? platform;
   String? computerName;

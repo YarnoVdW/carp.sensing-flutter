@@ -40,10 +40,7 @@ part of 'carp_services.dart';
 /// }
 /// ```
 @JsonSerializable(
-  fieldRename: FieldRename.snake,
-  includeIfNull: false,
-  explicitToJson: true,
-)
+    fieldRename: FieldRename.snake, includeIfNull: false, explicitToJson: true)
 class DataPoint {
   /// A unique, server-side generated ID for this data point.
   /// `null` if this data point is not yet stored.
@@ -95,12 +92,11 @@ class DataPoint {
 
   /// Create a [DataPoint] from a [Data] object.
   factory DataPoint.fromData(Data data) => DataPoint(
-    DataPointHeader(
-      dataFormat: data.dataType,
-      startTime: DateTime.now().toUtc(),
-    ),
-    data,
-  );
+      DataPointHeader(
+        dataFormat: data.format,
+        startTime: DateTime.now().toUtc(),
+      ),
+      data);
 
   /// Create a [DataPoint] from a JSON map.
   factory DataPoint.fromJson(Map<String, dynamic> json) =>
@@ -112,10 +108,7 @@ class DataPoint {
 
 /// The header (meta-data) attached to all [DataPoint]s.
 @JsonSerializable(
-  fieldRename: FieldRename.snake,
-  includeIfNull: false,
-  explicitToJson: true,
-)
+    fieldRename: FieldRename.snake, includeIfNull: false, explicitToJson: true)
 class DataPointHeader {
   /// An ID of this study.
   ///

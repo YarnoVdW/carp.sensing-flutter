@@ -10,69 +10,48 @@ void _registerFromJsonFunctions() {
   FromJsonFactory().registerAll([
     DefaultDeviceRegistration(),
     AltBeaconDeviceRegistration(),
+    SmartphoneDeviceRegistration(),
   ]);
 
   // register all the different device deployment status types - see [DeviceDeploymentStatusTypes]
   final device = DefaultDeviceConfiguration(roleName: '');
   FromJsonFactory().register(DeviceDeploymentStatus(device: device));
-  FromJsonFactory().register(
-    DeviceDeploymentStatus(device: device),
-    type:
-        'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.NotDeployed',
-  );
-  FromJsonFactory().register(
-    DeviceDeploymentStatus(device: device),
-    type:
-        'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.Unregistered',
-  );
-  FromJsonFactory().register(
-    DeviceDeploymentStatus(device: device),
-    type:
-        'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.Registered',
-  );
-  FromJsonFactory().register(
-    DeviceDeploymentStatus(device: device),
-    type:
-        'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.Deployed',
-  );
-  FromJsonFactory().register(
-    DeviceDeploymentStatus(device: device),
-    type:
-        'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.Running',
-  );
-  FromJsonFactory().register(
-    DeviceDeploymentStatus(device: device),
-    type:
-        'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.NeedsRedeployment',
-  );
+  FromJsonFactory().register(DeviceDeploymentStatus(device: device),
+      type:
+          'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.NotDeployed');
+  FromJsonFactory().register(DeviceDeploymentStatus(device: device),
+      type:
+          'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.Unregistered');
+  FromJsonFactory().register(DeviceDeploymentStatus(device: device),
+      type:
+          'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.Registered');
+  FromJsonFactory().register(DeviceDeploymentStatus(device: device),
+      type:
+          'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.Deployed');
+  FromJsonFactory().register(DeviceDeploymentStatus(device: device),
+      type:
+          'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.Running');
+  FromJsonFactory().register(DeviceDeploymentStatus(device: device),
+      type:
+          'dk.cachet.carp.deployments.application.DeviceDeploymentStatus.NeedsRedeployment');
 
   // register all the different study deployment status types - see [StudyDeploymentStatus]
   FromJsonFactory().register(StudyDeploymentStatus(studyDeploymentId: ''));
-  FromJsonFactory().register(
-    StudyDeploymentStatus(studyDeploymentId: ''),
-    type:
-        'dk.cachet.carp.deployments.application.StudyDeploymentStatus.Invited',
-  );
-  FromJsonFactory().register(
-    StudyDeploymentStatus(studyDeploymentId: ''),
-    type:
-        'dk.cachet.carp.deployments.application.StudyDeploymentStatus.DeployingDevices',
-  );
-  FromJsonFactory().register(
-    StudyDeploymentStatus(studyDeploymentId: ''),
-    type:
-        'dk.cachet.carp.deployments.application.StudyDeploymentStatus.DeploymentReady',
-  );
-  FromJsonFactory().register(
-    StudyDeploymentStatus(studyDeploymentId: ''),
-    type:
-        'dk.cachet.carp.deployments.application.StudyDeploymentStatus.Running',
-  );
-  FromJsonFactory().register(
-    StudyDeploymentStatus(studyDeploymentId: ''),
-    type:
-        'dk.cachet.carp.deployments.application.StudyDeploymentStatus.Stopped',
-  );
+  FromJsonFactory().register(StudyDeploymentStatus(studyDeploymentId: ''),
+      type:
+          'dk.cachet.carp.deployments.application.StudyDeploymentStatus.Invited');
+  FromJsonFactory().register(StudyDeploymentStatus(studyDeploymentId: ''),
+      type:
+          'dk.cachet.carp.deployments.application.StudyDeploymentStatus.DeployingDevices');
+  FromJsonFactory().register(StudyDeploymentStatus(studyDeploymentId: ''),
+      type:
+          'dk.cachet.carp.deployments.application.StudyDeploymentStatus.DeploymentReady');
+  FromJsonFactory().register(StudyDeploymentStatus(studyDeploymentId: ''),
+      type:
+          'dk.cachet.carp.deployments.application.StudyDeploymentStatus.Running');
+  FromJsonFactory().register(StudyDeploymentStatus(studyDeploymentId: ''),
+      type:
+          'dk.cachet.carp.deployments.application.StudyDeploymentStatus.Stopped');
 
   // PROTOCOL
   final config = SamplingConfiguration();
@@ -82,9 +61,8 @@ void _registerFromJsonFunctions() {
     ElapsedTimeTrigger(elapsedTime: const Duration()),
     ManualTrigger(),
     ScheduledTrigger(
-      recurrenceRule: RecurrenceRule(Frequency.DAILY),
-      time: const TimeOfDay(),
-    ),
+        recurrenceRule: RecurrenceRule(Frequency.DAILY),
+        time: const TimeOfDay()),
     TaskConfiguration(),
     BackgroundTask(),
     CustomProtocolTask(studyProtocol: ''),
@@ -93,10 +71,7 @@ void _registerFromJsonFunctions() {
     SamplingConfiguration(),
     NoOptionsSamplingConfiguration(),
     BatteryAwareSamplingConfiguration(
-      critical: config,
-      low: config,
-      normal: config,
-    ),
+        critical: config, low: config, normal: config),
     GranularitySamplingConfiguration(Granularity.Balanced),
     DeviceConfiguration(roleName: ''),
     DefaultDeviceConfiguration(roleName: ''),
@@ -105,7 +80,6 @@ void _registerFromJsonFunctions() {
     Smartphone(),
     WebBrowser(),
     AltBeacon(),
-    // BLEHeartRateDevice(),
     ParticipantAttribute(inputDataType: ''),
     AssignedTo(),
     AssignedTo(roleNames: {'AA'}),
@@ -136,21 +110,25 @@ void _registerFromJsonFunctions() {
     GetAllForOwner(''),
     GetVersionHistoryFor(''),
     CreateCustomProtocol('', '', '', ''),
-    OpenDataStreams(
-      DataStreamsConfiguration(studyDeploymentId: '', expectedDataStreams: {}),
-    ),
+    OpenDataStreams(DataStreamsConfiguration(
+      studyDeploymentId: '',
+      expectedDataStreams: {},
+    )),
     AppendToDataStreams('', []),
     GetDataStream(
-      DataStreamId(studyDeploymentId: '', deviceRoleName: '', dataType: ''),
-      0,
-    ),
+        DataStreamId(
+          studyDeploymentId: '',
+          deviceRoleName: '',
+          dataType: '',
+        ),
+        0),
     CloseDataStreams([]),
-    RemoveDataStreams([]),
+    RemoveDataStreams([])
   ]);
 
   // DATA TYPES
   FromJsonFactory().registerAll([
-    // Data(),
+    Data(),
     // SensorData(),
     Acceleration(),
     Rotation(),
@@ -163,12 +141,11 @@ void _registerFromJsonFunctions() {
     EDA(),
     CompletedTask(taskName: ''),
     TriggeredTask(
-      triggerId: 0,
-      taskName: '',
-      destinationDeviceRoleName: '',
-      control: Control.Start,
-    ),
-    Error(message: ''),
+        triggerId: 0,
+        taskName: '',
+        destinationDeviceRoleName: '',
+        control: Control.Start),
+    Error(message: '')
   ]);
 
   // INPUT DATA TYPES

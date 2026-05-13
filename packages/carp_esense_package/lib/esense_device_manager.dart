@@ -22,7 +22,7 @@ part of 'esense.dart';
 // audio streaming), and use the LEFT earbud for IMU data collection using BLE
 // as part of a mobile sensing study.
 
-/// A [DeviceConfiguration] for an eSense device used in a [StudyProtocol].
+/// A [DeviceDescriptor] for an eSense device used in a [StudyProtocol].
 ///
 /// **From the eSense User Documentation:**
 ///
@@ -48,20 +48,26 @@ part of 'esense.dart';
 /// to use the right earbud to record only sound samples and the left earbud to
 /// record only IMU data.
 @JsonSerializable(fieldRename: FieldRename.none, includeIfNull: false)
-class ESenseDevice extends BLEDevice<BLEDeviceRegistration> {
+class ESenseDevice extends DeviceConfiguration {
   /// The type of an eSense device.
   static const String DEVICE_TYPE =
-      '${CamsDevice.CAMS_DEVICE_NAMESPACE}.ESenseDevice';
+      '${DeviceConfiguration.DEVICE_NAMESPACE}.ESenseDevice';
 
   /// The default role name for an eSense device.
-  static const String DEFAULT_ROLE_NAME = 'eSense';
+  static const String DEFAULT_ROLENAME = 'eSense';
+
+  /// The name of the eSense device.
+  /// Used for connecting to the eSense hardware device over BTLE.
+  /// eSense devices are typically named `eSense-xxxx`.
+  String? deviceName;
 
   /// The sampling rate in Hz of getting sensor data from the device.
   int samplingRate;
 
   ESenseDevice({
-    super.roleName = ESenseDevice.DEFAULT_ROLE_NAME,
+    super.roleName = ESenseDevice.DEFAULT_ROLENAME,
     super.isOptional = true,
+    this.deviceName,
     this.samplingRate = 10,
   });
 
@@ -74,26 +80,29 @@ class ESenseDevice extends BLEDevice<BLEDeviceRegistration> {
 }
 
 /// A [DeviceManager] for the eSense device.
-///
-/// Note that eSense use the [bleName] (and not the BLE address) for connecting to it.
-/// Typically of the form `eSense-xxxx`.
-class ESenseDeviceManager
-    extends BLEDeviceManager<ESenseDevice, BLEDeviceRegistration> {
+class ESenseDeviceManager extends BTLEDeviceManager<ESenseDevice> {
   Timer? _batteryTimer;
   StreamSubscription<ESenseEvent>? _batterySubscription;
   double? _voltageLevel;
   final StreamController<int> _batteryEventController =
       StreamController.broadcast();
 
-  ESenseManager? _manager;
-
-  /// The eSense device handler.
-  /// Only available after [bleName] has been set.
-  ESenseManager? get manager =>
-      bleName != null ? _manager ??= ESenseManager(bleName!) : _manager = null;
+  /// A handle to the [ESenseManager] plugin.
+  ESenseManager? manager;
 
   @override
-  String? get displayName => bleName;
+  String get id => configuration?.deviceName ?? 'eSense-????';
+
+  @override
+  String? get displayName => btleName;
+
+  @override
+  String get btleName => configuration?.deviceName ?? 'eSense-????';
+
+  /// Set the name of this device based on the Bluetooth name.
+  /// This name is used for connecting to the device.
+  @override
+  set btleName(String btleName) => configuration?.deviceName = btleName;
 
   /// An estimate of the battery level of the eSense device.
   ///
@@ -122,35 +131,33 @@ class ESenseDeviceManager
   @override
   Stream<int> get batteryEvents => _batteryEventController.stream;
 
-  ESenseDeviceManager(super.type, {super.configuration});
-
-  @Deprecated('Use bleName instead')
-  @override
-  String? get bleAddress => bleName;
-
-  @Deprecated('Use bleName instead')
-  @override
-  set bleAddress(String? address) => bleName = address;
+  ESenseDeviceManager(
+    super.type, [
+    super.configuration,
+  ]);
 
   @override
-  bool get canConnect => bleName != null;
+  Future<bool> canConnect() async => (configuration?.deviceName != null &&
+      configuration!.deviceName!.isNotEmpty);
 
   @override
-  BLEDeviceRegistration createRegistration() => BLEDeviceRegistration(
-    deviceDisplayName: bleName,
-    isConnected: isConnected,
-    batteryChargingState: batteryLevel != null
-        ? HardwareDeviceRegistration.parseBatteryLevel(batteryLevel!)
-        : BatteryChargingState.unknown,
-    bleAddress: bleName ?? 'Unknown eSense Device',
-    bleName: bleName,
-  );
+  void onInitialize(ESenseDevice configuration) {
+    if (configuration.deviceName == null || configuration.deviceName!.isEmpty) {
+      warning(
+          '$runtimeType - cannot connect to eSense device, device name is null.');
+    }
+    manager = ESenseManager(id);
+
+    super.onInitialize(configuration);
+  }
 
   @override
   Future<DeviceStatus> onConnect() async {
     try {
       // listen for connection events
       manager?.connectionEvents.listen((event) async {
+        debug('$runtimeType - $event');
+
         switch (event.type) {
           case ConnectionType.connected:
             status = DeviceStatus.connected;
@@ -190,13 +197,12 @@ class ESenseDeviceManager
         }
       });
 
-      // try to connect to the manager with the [bleName]
+      // try to scan for eSense device and connect to it
       manager?.connect();
     } catch (error) {
       warning(
-        '$runtimeType - Error connecting to eSense device: $bleName - $error',
-      );
-      return DeviceStatus.disconnected;
+          '$runtimeType - Error connecting to eSense device id: $id - $error');
+      return DeviceStatus.error;
     }
 
     return DeviceStatus.connecting;

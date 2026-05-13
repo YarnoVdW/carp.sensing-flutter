@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:carp_serializable/carp_serializable.dart';
-import 'package:carp_core/carp_core.dart' hide Smartphone;
+import 'package:carp_core/carp_core.dart';
 import 'package:carp_mobile_sensing/carp_mobile_sensing.dart';
 import 'package:http/http.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -20,6 +20,7 @@ class RemoteTrigger extends TriggerConfiguration {
   String uri;
 
   /// How often should we check the server?
+  /// Default is every 10 minutes.
   Duration interval;
 
   @override
@@ -36,7 +37,7 @@ class RemoteTriggerExecutor extends TriggerExecutor<RemoteTrigger> {
   final client = Client();
 
   @override
-  Future<bool> onResume() async {
+  Future<bool> onStart() async {
     // Set up a periodic timer to look for a resource at the specified URI
     timer = Timer.periodic(configuration!.interval, (_) async {
       var response = await client.get(
@@ -52,7 +53,7 @@ class RemoteTriggerExecutor extends TriggerExecutor<RemoteTrigger> {
   }
 }
 
-/// A [TriggerFactory] for remote triggers.
+/// A [TriggerFactory] for all remote triggers.
 class RemoteTriggerFactory implements TriggerFactory {
   @override
   Set<Type> types = {
@@ -67,11 +68,10 @@ class RemoteTriggerFactory implements TriggerFactory {
   }
 
   @override
-  TriggerExecutor<TriggerConfiguration> create(TriggerConfiguration trigger) =>
-      switch (trigger) {
-        RemoteTrigger _ => RemoteTriggerExecutor(),
-        _ => ImmediateTriggerExecutor(),
-      };
+  TriggerExecutor<TriggerConfiguration> create(TriggerConfiguration trigger) {
+    if (trigger is RemoteTrigger) return RemoteTriggerExecutor();
+    return ImmediateTriggerExecutor();
+  }
 }
 
 class Sensing {
