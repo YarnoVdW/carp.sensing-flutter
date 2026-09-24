@@ -10,6 +10,7 @@ library;
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:geolocator/geolocator.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:weather/weather.dart' as weather;
 import 'package:openmhealth_schemas/openmhealth_schemas.dart';

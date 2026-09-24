@@ -16,13 +16,44 @@ class WeatherProbe extends MeasurementProbe {
   @override
   Future<Measurement> getMeasurement() async {
     if (deviceManager.service != null) {
+      bool serviceEnabled;
+      LocationPermission permission;
+
       try {
-        final loc = await LocationManager().getLocation();
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          warning(
+              '$runtimeType - Location service is not enabled. Cannot get weather.');
+          return Measurement.fromData(Error(
+              message:
+                  '$runtimeType - Location service is not enabled in system settings. Cannot get weather.'));
+        }
+
+        permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+          if (permission == LocationPermission.denied) {
+            warning(
+                '$runtimeType - Location service is not enabled. Cannot get weather.');
+            return Measurement.fromData(Error(
+                message:
+                    '$runtimeType - Some permissions are not granted. Cannot get weather.'));
+          }
+        }
+
+        if (permission == LocationPermission.deniedForever) {
+          warning(
+              '$runtimeType - Location service is not enabled. Cannot get weather.');
+          return Measurement.fromData(Error(
+              message:
+                  '$runtimeType - Some permissions are permanently denied. Cannot get weather.'));
+        }
+
+        final loc = await Geolocator.getCurrentPosition();
         final w = await deviceManager.service!.currentWeatherByLocation(
           loc.latitude,
           loc.longitude,
         );
-
         return Measurement.fromData(Weather.fromWeatherData(w));
       } catch (error) {
         warning('$runtimeType - Error getting weather - $error');
