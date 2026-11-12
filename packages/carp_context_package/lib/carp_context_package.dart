@@ -29,6 +29,8 @@ import 'package:flutter_activity_recognition/flutter_activity_recognition.dart'
 import 'package:carp_serializable/carp_serializable.dart';
 import 'package:carp_core/carp_core.dart';
 import 'package:carp_mobile_sensing/carp_mobile_sensing.dart';
+import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
+    as bg;
 
 part 'src/location_manager.dart';
 part 'src/activity/activity_data.dart';

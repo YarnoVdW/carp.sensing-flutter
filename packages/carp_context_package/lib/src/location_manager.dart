@@ -185,8 +185,8 @@ class LocationManager {
       try {
         // note that the following will request the "location always" permission
         // which will open the OS-specific settings on the phone (both iOS and Android)
-        //yarno: we put it to false to not open the foreground servic4 (we handle this already)
-        backgroundMode = false; //await _provider.enableBackgroundMode();
+
+        backgroundMode = await _provider.enableBackgroundMode();
       } catch (error) {
         warning('$runtimeType - Could not enable background mode - $error');
       }
