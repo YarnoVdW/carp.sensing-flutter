@@ -174,28 +174,17 @@ class LocationManager {
 
     // var permission = await _provider.hasPermission();
     var permission = await Permission.locationWhenInUse.status;
-    bool backgroundMode = false;
 
     if (permission != PermissionStatus.granted) {
       warning(
           "$runtimeType - Permission to collect location data has not been granted. "
           "Make sure to grant this BEFORE sensing is resumed. "
           "The context sampling package does not handle location permissions. This should be handled on the application level.");
-    } else {
-      try {
-        // note that the following will request the "location always" permission
-        // which will open the OS-specific settings on the phone (both iOS and Android)
-
-        backgroundMode = await _provider.enableBackgroundMode();
-      } catch (error) {
-        warning('$runtimeType - Could not enable background mode - $error');
-      }
     }
 
     info('$runtimeType'
         ' - service enabled: $serviceEnabled'
-        ' - permission: $permission'
-        ' - background mode: $backgroundMode');
+        ' - permission: $permission');
   }
 
   /// Configures the [LocationManager], incl. sending a notification to the

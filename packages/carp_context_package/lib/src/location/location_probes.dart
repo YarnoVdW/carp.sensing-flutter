@@ -49,75 +49,49 @@ class ConfigurableLocationProbe extends Probe {
   Future<bg.State>? _backgroundReady;
 
   Future<void> _readyBackgroundLocation() async {
-    bg.BackgroundGeolocation.registerHeadlessTask(
+    await bg.BackgroundGeolocation.registerHeadlessTask(
         backgroundLocationHeadlessTask);
-    (
-      _backgroundReady ??= bg.BackgroundGeolocation.ready(
-        bg.Config(
-          app: bg.AppConfig(
-            stopOnTerminate: false,
-            startOnBoot: true,
-            enableHeadless: true,
-            heartbeatInterval: settings?.interval.inSeconds.toDouble(),
-            notification: bg.Notification(
-              title: settings?.notificationTitle ?? 'Location Service',
-              text: settings?.notificationMessage ??
-                  'Location service is running in the background',
-              sticky: true,
-            ),
-          ),
-          persistence: const bg.PersistenceConfig(
-            maxDaysToPersist: 30,
-            persistMode: bg.PersistMode.location,
-            disableProviderChangeRecord: true,
-          ),
-          logger: const bg.LoggerConfig(
-            debug: false,
-            logLevel: bg.LogLevel.verbose,
-          ),
-          activity: const bg.ActivityConfig(
-            activityRecognitionInterval: 10000.0,
-            disableStopDetection: false,
-            stopOnStationary: false,
-          ),
-          geolocation: bg.GeoConfig(
-            distanceFilter: settings?.distance ?? 0,
-            locationUpdateInterval: settings?.interval.inMilliseconds ?? 0,
-            fastestLocationUpdateInterval: 1000,
-            deferTime: 0,
-            disableElasticity: true,
-            stopTimeout: 2,
-            useSignificantChangesOnly: false,
-            allowIdenticalLocations: true,
-            desiredAccuracy: bg.DesiredAccuracy.high,
+    await (_backgroundReady ??= bg.BackgroundGeolocation.ready(
+      bg.Config(
+        app: bg.AppConfig(
+          stopOnTerminate: false,
+          startOnBoot: true,
+          enableHeadless: true,
+          heartbeatInterval: settings?.interval.inSeconds.toDouble(),
+          notification: bg.Notification(
+            title: settings?.notificationTitle ?? 'Location Service',
+            text: settings?.notificationMessage ??
+                'Location service is running in the background',
+            sticky: true,
           ),
         ),
+        persistence: const bg.PersistenceConfig(
+          maxDaysToPersist: 30,
+          persistMode: bg.PersistMode.location,
+          disableProviderChangeRecord: true,
+        ),
+        logger: const bg.LoggerConfig(
+          debug: false,
+          logLevel: bg.LogLevel.verbose,
+        ),
+        activity: const bg.ActivityConfig(
+          activityRecognitionInterval: 10000.0,
+          disableStopDetection: false,
+          stopOnStationary: false,
+        ),
+        geolocation: bg.GeoConfig(
+          distanceFilter: settings?.distance ?? 0,
+          locationUpdateInterval: settings?.interval.inMilliseconds ?? 0,
+          fastestLocationUpdateInterval: 1000,
+          deferTime: 0,
+          disableElasticity: true,
+          stopTimeout: 2,
+          useSignificantChangesOnly: false,
+          allowIdenticalLocations: true,
+          desiredAccuracy: bg.DesiredAccuracy.high,
+        ),
       ),
-    );
-  }
-
-  Future<void> _recordHeartbeatLocation() async {
-    int? taskId;
-    try {
-      await bg.BackgroundGeolocation.getCurrentPosition(
-          samples: 1, persist: true);
-
-      taskId = await bg.BackgroundGeolocation.startBackgroundTask();
-
-      await Future.delayed(const Duration(seconds: 45));
-    } catch (error) {
-      warning(
-          'Background location - Error getting heartbeat location - $error');
-    } finally {
-      if (taskId != null) {
-        await bg.BackgroundGeolocation.stopBackgroundTask(taskId);
-      }
-    }
-  }
-
-  @pragma('vm:entry-point')
-  void backgroundLocationHeadlessTask(bg.HeadlessEvent event) async {
-    if (event.name == bg.Event.HEARTBEAT) await _recordHeartbeatLocation();
+    ));
   }
 
   Stream<Location> _backgroundLocations() {
@@ -201,5 +175,28 @@ class ConfigurableLocationProbe extends Probe {
   Future<bool> onRestart() async {
     await _subscription?.cancel();
     return true;
+  }
+}
+
+@pragma('vm:entry-point')
+Future<void> backgroundLocationHeadlessTask(bg.HeadlessEvent event) async {
+  if (event.name == bg.Event.HEARTBEAT) await _recordHeartbeatLocation();
+}
+
+Future<void> _recordHeartbeatLocation() async {
+  int? taskId;
+  try {
+    await bg.BackgroundGeolocation.getCurrentPosition(
+        samples: 1, persist: true);
+
+    taskId = await bg.BackgroundGeolocation.startBackgroundTask();
+
+    await Future<void>.delayed(const Duration(seconds: 45));
+  } catch (error) {
+    warning('Background location - Error getting heartbeat location - $error');
+  } finally {
+    if (taskId != null) {
+      await bg.BackgroundGeolocation.stopBackgroundTask(taskId);
+    }
   }
 }
